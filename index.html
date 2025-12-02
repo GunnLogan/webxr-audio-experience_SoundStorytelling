@@ -4,9 +4,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>WebXR Audio Experience</title>
 
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=14"></script>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=15"></script>
 
   <style>
+    /* START screen */
     #startOverlay {
       position: fixed;
       top: 0;
@@ -19,6 +20,7 @@
       align-items: center;
       z-index: 999999;
     }
+
     #startButton {
       padding: 20px 40px;
       font-size: 2rem;
@@ -27,9 +29,15 @@
       border-radius: 12px;
       border: none;
     }
+
+    /* FORCE REMOVE all A-Frame VR/AR buttons */
+    .a-enter-vr,
+    .a-enter-ar {
+      display: none !important;
+    }
   </style>
 
-  <!-- PROXIMITY TRIGGER COMPONENT -->
+  <!-- PROXIMITY COMPONENT -->
   <script>
     AFRAME.registerComponent("proximity-trigger", {
       schema: {
@@ -46,7 +54,6 @@
         this.secondaryPlayed = false;
         this.insideZone = false;
 
-        // Hide B sphere at start
         if (this.data.bsphere) {
           this.data.bsphere.setAttribute("visible", "false");
         }
@@ -55,11 +62,9 @@
         const A = this.data.sound?.components.sound;
         const B = this.data.nextsound?.components.sound;
 
-        // A ends → hide A sphere → show B sphere → play B
         if (A) {
           this.data.sound.addEventListener("sound-ended", () => {
             if (self.data.asphere) self.data.asphere.setAttribute("visible","false");
-
             if (self.data.bsphere) self.data.bsphere.setAttribute("visible","true");
 
             if (!self.secondaryPlayed && B) {
@@ -69,7 +74,6 @@
           });
         }
 
-        // B ends → hide B sphere
         if (B) {
           this.data.nextsound.addEventListener("sound-ended", () => {
             if (self.data.bsphere) self.data.bsphere.setAttribute("visible","false");
@@ -85,7 +89,6 @@
 
         const inside = dist < this.data.distance;
 
-        // ENTER
         if (inside && !this.insideZone) {
           this.insideZone = true;
 
@@ -98,7 +101,6 @@
           }
         }
 
-        // EXIT
         if (!inside && this.insideZone) {
           this.insideZone = false;
 
@@ -114,7 +116,6 @@
       }
     });
   </script>
-
 </head>
 
 <body>
@@ -133,12 +134,12 @@
 
     <!-- INTRO -->
     <a-entity id="intro"
-      sound="src: url(assets/audio/audio_intro.wav?v=14); autoplay: false; loop: false; volume: 1.0; positional: false;">
+      sound="src: url(assets/audio/audio_intro.wav?v=15); autoplay: false; loop: false; volume: 1.0; positional: false;">
     </a-entity>
 
-    <!-- AMBIENCE (starts silent) -->
+    <!-- AMBIENCE -->
     <a-entity id="ambient"
-      sound="src: url(assets/audio/audio_ambience.wav?v=14); autoplay: false; loop: true; volume: 0.0; positional: false;">
+      sound="src: url(assets/audio/audio_ambience.wav?v=15); autoplay: false; loop: true; volume: 0.0; positional: false;">
     </a-entity>
 
     <!-- === CORNER 1 === -->
@@ -149,8 +150,8 @@
       proximity-trigger="sound:#s1; nextsound:#s1b; distance:1.5;
                          asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
 
-    <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=14); positional: true;"></a-entity>
-    <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=14); positional: true;"></a-entity>
+    <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=15); positional: true;"></a-entity>
 
     <!-- === CORNER 2 === -->
     <a-sphere id="a2" class="asphere" visible="false" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
@@ -160,8 +161,8 @@
       proximity-trigger="sound:#s2; nextsound:#s2b; distance:1.5;
                          asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
 
-    <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=14); positional: true;"></a-entity>
-    <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=14); positional: true;"></a-entity>
+    <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=15); positional: true;"></a-entity>
 
     <!-- === CORNER 3 === -->
     <a-sphere id="a3" class="asphere" visible="false" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
@@ -171,8 +172,8 @@
       proximity-trigger="sound:#s3; nextsound:#s3b; distance:1.5;
                          asphere:#a3; bsphere:#b3; ambient:#ambient"></a-entity>
 
-    <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=14); positional: true;"></a-entity>
-    <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=14); positional: true;"></a-entity>
+    <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=15); positional: true;"></a-entity>
 
     <!-- === CORNER 4 === -->
     <a-sphere id="a4" class="asphere" visible="false" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
@@ -182,8 +183,8 @@
       proximity-trigger="sound:#s4; nextsound:#s4b; distance:1.5;
                          asphere:#a4; bsphere:#b4; ambient:#ambient"></a-entity>
 
-    <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=14); positional: true;"></a-entity>
-    <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=14); positional: true;"></a-entity>
+    <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=15); positional: true;"></a-entity>
 
   </a-scene>
 
@@ -199,10 +200,8 @@
         if (!start) start = ts;
         let p = (ts - start) / fadeTime;
         if (p > 1) p = 1;
-
         intro.components.sound.setVolume(1 - p);
         amb.components.sound.setVolume(p);
-
         if (p < 1) requestAnimationFrame(step);
         else intro.components.sound.stopSound();
       }
@@ -217,7 +216,7 @@
 
       // --- iPhone → AUDIO-ONLY MODE ---
       if (isIOS()) {
-        console.log("🍎 iPhone detected → Audio-Only Mode");
+        console.log("🍎 iPhone detected → Audio-only mode");
 
         intro.components.sound.playSound();
 
@@ -232,9 +231,9 @@
       }
 
       // --- ANDROID → AR DEBUG MODE ---
-      console.log("🤖 Android detected → AR Debug Mode");
+      console.log("🤖 Android detected → AR debug mode enabled");
 
-      // Dynamically enable AR
+      // Enable AR dynamically
       scene.setAttribute("webxr", "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;");
 
       intro.components.sound.playSound();
