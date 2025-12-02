@@ -7,9 +7,6 @@
     <!-- A-Frame 1.7.0 -->
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
-    <!-- A-Frame Extras (still compatible) -->
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
-
     <!-- Proximity trigger component -->
     <script>
       AFRAME.registerComponent("proximity-trigger", {
@@ -23,7 +20,6 @@
 
         init: function () {
           const self = this;
-
           this.primaryPlayed = false;
           this.secondaryPlayed = false;
 
@@ -50,8 +46,8 @@
           if (this.primaryPlayed && this.secondaryPlayed) return;
 
           const cam = this.el.sceneEl.camera.el.object3D.position;
-          const pos = this.el.object3D.position;
-          const dist = cam.distanceTo(pos);
+          const obj = this.el.object3D.position;
+          const dist = cam.distanceTo(obj);
 
           if (dist < this.data.distance && !this.primaryPlayed) {
             const snd = this.data.sound.components.sound;
@@ -75,14 +71,14 @@
       <!-- CAMERA -->
       <a-entity id="camera" camera look-controls></a-entity>
 
-      <!-- AMBIENT audio (no autoplay) -->
+      <!-- AMBIENT AUDIO (manual start after AR enters) -->
       <a-entity id="ambient"
         sound="src: url(assets/audio/audio_Intro.wav); loop: true; positional: false;">
       </a-entity>
 
       <!-- ======== CORNER 1 ======== -->
-      <a-sphere id="a1" color="#FFD400" radius="0.15" position="1 1 -1"></a-sphere>
-      <a-sphere id="b1" color="#00FFFF" radius="0.15" position="1 1 -1.2"></a-sphere>
+      <a-sphere id="a1" radius="0.15" color="#FFD400" position="1 1 -1"></a-sphere>
+      <a-sphere id="b1" radius="0.15" color="#00FFFF" position="1 1 -1.2"></a-sphere>
 
       <a-entity id="corner1" position="1 1 -1"
         proximity-trigger="sound:#s1; nextsound:#s1b; distance:0.7; asphere:#a1; bsphere:#b1">
@@ -92,8 +88,8 @@
       <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav); positional: true;"></a-entity>
 
       <!-- ======== CORNER 2 ======== -->
-      <a-sphere id="a2" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
-      <a-sphere id="b2" color="#00FFFF" radius="0.15" position="-1 1 -1.2"></a-sphere>
+      <a-sphere id="a2" radius="0.15" color="#FFD400" position="-1 1 -1"></a-sphere>
+      <a-sphere id="b2" radius="0.15" color="#00FFFF" position="-1 1 -1.2"></a-sphere>
 
       <a-entity id="corner2" position="-1 1 -1"
         proximity-trigger="sound:#s2; nextsound:#s2b; distance:0.7; asphere:#a2; bsphere:#b2">
@@ -103,8 +99,8 @@
       <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav); positional: true;"></a-entity>
 
       <!-- ======== CORNER 3 ======== -->
-      <a-sphere id="a3" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
-      <a-sphere id="b3" color="#00FFFF" radius="0.15" position="1 1 0.8"></a-sphere>
+      <a-sphere id="a3" radius="0.15" color="#FFD400" position="1 1 1"></a-sphere>
+      <a-sphere id="b3" radius="0.15" color="#00FFFF" position="1 1 0.8"></a-sphere>
 
       <a-entity id="corner3" position="1 1 1"
         proximity-trigger="sound:#s3; nextsound:#s3b; distance:0.7; asphere:#a3; bsphere:#b3">
@@ -114,8 +110,8 @@
       <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav); positional: true;"></a-entity>
 
       <!-- ======== CORNER 4 ======== -->
-      <a-sphere id="a4" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
-      <a-sphere id="b4" color="#00FFFF" radius="0.15" position="-1 1 0.8"></a-sphere>
+      <a-sphere id="a4" radius="0.15" color="#FFD400" position="-1 1 1"></a-sphere>
+      <a-sphere id="b4" radius="0.15" color="#00FFFF" position="-1 1 0.8"></a-sphere>
 
       <a-entity id="corner4" position="-1 1 1"
         proximity-trigger="sound:#s4; nextsound:#s4b; distance:0.7; asphere:#a4; bsphere:#b4">
@@ -126,6 +122,13 @@
 
     </a-scene>
 
-    <!-- Start ambient audio AFTER AR session begins -->
+    <!-- START ambient audio ONLY when AR session starts -->
     <script>
-      document.querySelector("a
+      document.querySelector("a-scene").addEventListener("enter-vr", () => {
+        const amb = document.querySelector("#ambient");
+        if (amb && amb.components.sound) amb.components.sound.playSound();
+      });
+    </script>
+
+  </body>
+</html>
