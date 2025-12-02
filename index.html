@@ -5,7 +5,6 @@
   <title>WebXR Audio Experience</title>
 
   <link rel="stylesheet" href="styles/main.css">
-
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
   <!-- Scripts -->
@@ -44,7 +43,7 @@
            volume:1;">
   </a-entity>
 
-  <!-- AMBIENCE -->
+  <!-- AMBIENCE (spatial mono controlled by ambient-proximity) -->
   <a-entity id="ambient"
     sound="src:url(assets/audio/audio_ambience.wav);
            autoplay:false;
@@ -55,14 +54,16 @@
            volume:1;">
   </a-entity>
 
-  <!-- AMBIENT PROXIMITY CENTER -->
+  <!-- CENTER FOR AMBIENT PROXIMITY LOGIC -->
   <a-entity id="ambientCenter"
     position="0 1 0"
-    ambient-proximity="ambient:#ambient;
-                       maxRadius:4;
-                       falloff:0.05;
-                       plateau:0.5">
+    ambient-proximity="
+      ambient:#ambient;
+      maxRadius:4;
+      falloff:0.05;
+      plateau:0.5">
   </a-entity>
+
 
   <!-- =============================================================== -->
   <!-- FRONT CLUSTER (1)                                               -->
@@ -112,7 +113,7 @@
            rolloffFactor:1;">
   </a-entity>
 
-  <!-- FRONT CLUSTER TRIGGER -->
+  <!-- FRONT LOGIC -->
   <a-entity id="frontCluster"
     cluster-proximity="
       soundA:#s1;
@@ -125,6 +126,8 @@
       dsphere:#d1;
       distance:0.75">
   </a-entity>
+
+
 
   <!-- =============================================================== -->
   <!-- BACK CLUSTER (2)                                                -->
@@ -174,6 +177,7 @@
            rolloffFactor:1;">
   </a-entity>
 
+  <!-- BACK LOGIC -->
   <a-entity id="backCluster"
     cluster-proximity="
       soundA:#s2;
@@ -186,6 +190,7 @@
       dsphere:#d2;
       distance:0.75">
   </a-entity>
+
 
   <!-- =============================================================== -->
   <!-- RIGHT CLUSTER (3)                                               -->
@@ -235,6 +240,7 @@
            rolloffFactor:1;">
   </a-entity>
 
+  <!-- RIGHT LOGIC -->
   <a-entity id="rightCluster"
     cluster-proximity="
       soundA:#s3;
@@ -247,6 +253,7 @@
       dsphere:#d3;
       distance:0.75">
   </a-entity>
+
 
   <!-- =============================================================== -->
   <!-- LEFT CLUSTER (4)                                                -->
@@ -296,6 +303,7 @@
            rolloffFactor:1;">
   </a-entity>
 
+  <!-- LEFT LOGIC -->
   <a-entity id="leftCluster"
     cluster-proximity="
       soundA:#s4;
@@ -308,6 +316,7 @@
       dsphere:#d4;
       distance:0.75">
   </a-entity>
+
 
 </a-scene>
 </body>
