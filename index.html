@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>WebXR Audio Experience</title>
 
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=17"></script>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=18"></script>
 
   <style>
     /* START screen */
@@ -21,13 +21,26 @@
       z-index: 999999;
     }
 
-    #startButton {
-      padding: 20px 40px;
-      font-size: 2rem;
+    #startButtons {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+    }
+
+    #startButton,
+    #debugButton {
+      padding: 16px 32px;
+      font-size: 1.4rem;
       background: white;
       color: black;
       border-radius: 12px;
       border: none;
+      min-width: 220px;
+    }
+
+    #debugButton {
+      background: #ddd;
     }
 
     /* Remove ALL A-Frame VR/AR buttons */
@@ -63,6 +76,7 @@
         const A = this.data.sound?.components.sound;
         const B = this.data.nextsound?.components.sound;
 
+        // A ends → hide A sphere → show B sphere → play B
         if (A) {
           this.data.sound.addEventListener("sound-ended", () => {
             if (self.data.asphere) self.data.asphere.setAttribute("visible","false");
@@ -75,6 +89,7 @@
           });
         }
 
+        // B ends → hide B sphere
         if (B) {
           this.data.nextsound.addEventListener("sound-ended", () => {
             if (self.data.bsphere) self.data.bsphere.setAttribute("visible","false");
@@ -90,6 +105,7 @@
 
         const inside = dist < this.data.distance;
 
+        // ENTER
         if (inside && !this.insideZone) {
           this.insideZone = true;
 
@@ -102,6 +118,7 @@
           }
         }
 
+        // EXIT
         if (!inside && this.insideZone) {
           this.insideZone = false;
 
@@ -123,7 +140,10 @@
 
   <!-- START SCREEN -->
   <div id="startOverlay">
-    <button id="startButton">START</button>
+    <div id="startButtons">
+      <button id="startButton">START</button>
+      <button id="debugButton">DESKTOP DEBUG</button>
+    </div>
   </div>
 
   <a-scene
@@ -131,16 +151,21 @@
     vr-mode-ui="enabled: false"
     ar-mode-ui="enabled: false">
 
-    <a-entity id="camera" camera look-controls></a-entity>
+    <!-- Camera: WASD disabled by default (enabled only in desktop debug) -->
+    <a-entity id="camera"
+      camera
+      look-controls="pointerLockEnabled: false"
+      wasd-controls="enabled: false">
+    </a-entity>
 
     <!-- INTRO -->
     <a-entity id="intro"
-      sound="src: url(assets/audio/audio_intro.wav?v=17); autoplay: false; loop: false; volume: 1.0; positional: false;">
+      sound="src: url(assets/audio/audio_intro.wav?v=18); autoplay: false; loop: false; volume: 1.0; positional: false;">
     </a-entity>
 
     <!-- AMBIENCE -->
     <a-entity id="ambient"
-      sound="src: url(assets/audio/audio_ambience.wav?v=17); autoplay: false; loop: true; volume: 0.0; positional: false;">
+      sound="src: url(assets/audio/audio_ambience.wav?v=18); autoplay: false; loop: true; volume: 0.0; positional: false;">
     </a-entity>
 
     <!-- === CORNER 1 === -->
@@ -151,8 +176,8 @@
       proximity-trigger="sound:#s1; nextsound:#s1b; distance:1.5;
                          asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
 
-    <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=17); positional: true;"></a-entity>
-    <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=18); positional: true;"></a-entity>
+    <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=18); positional: true;"></a-entity>
 
     <!-- === CORNER 2 === -->
     <a-sphere id="a2" class="asphere" visible="false" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
@@ -162,8 +187,8 @@
       proximity-trigger="sound:#s2; nextsound:#s2b; distance:1.5;
                          asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
 
-    <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=17); positional: true;"></a-entity>
-    <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=18); positional: true;"></a-entity>
+    <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=18); positional: true;"></a-entity>
 
     <!-- === CORNER 3 === -->
     <a-sphere id="a3" class="asphere" visible="false" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
@@ -173,8 +198,8 @@
       proximity-trigger="sound:#s3; nextsound:#s3b; distance:1.5;
                          asphere:#a3; bsphere:#b3; ambient:#ambient"></a-entity>
 
-    <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=17); positional: true;"></a-entity>
-    <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=18); positional: true;"></a-entity>
+    <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=18); positional: true;"></a-entity>
 
     <!-- === CORNER 4 === -->
     <a-sphere id="a4" class="asphere" visible="false" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
@@ -184,12 +209,12 @@
       proximity-trigger="sound:#s4; nextsound:#s4b; distance:1.5;
                          asphere:#a4; bsphere:#b4; ambient:#ambient"></a-entity>
 
-    <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=17); positional: true;"></a-entity>
-    <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=18); positional: true;"></a-entity>
+    <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=18); positional: true;"></a-entity>
 
   </a-scene>
 
-  <!-- START + PLATFORM LOGIC -->
+  <!-- START + PLATFORM + DEBUG LOGIC -->
   <script>
     function isIOS() {
       return /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -209,35 +234,35 @@
       requestAnimationFrame(step);
     }
 
+    // Common function: what happens after intro finishes
+    function handleIntroEnded(intro, amb) {
+      document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible", "true"));
+      amb.components.sound.playSound();
+      crossfade(intro, amb, 2000);
+    }
+
+    // === START BUTTON (normal flow) ===
     document.querySelector("#startButton").addEventListener("click", async () => {
       const overlay = document.querySelector("#startOverlay");
       const intro = document.querySelector("#intro");
       const amb = document.querySelector("#ambient");
       const scene = document.querySelector("a-scene");
 
-      // Hide START immediately
       overlay.style.display = "none";
 
-      // --- iPHONE → AUDIO ONLY ---
+      // iPhone → audio only
       if (isIOS()) {
         console.log("🍎 iPhone → audio-only");
-
         intro.components.sound.playSound();
-
-        intro.addEventListener("sound-ended", () => {
-          document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible","true"));
-          amb.components.sound.playSound();
-          crossfade(intro, amb, 2000);
-        });
-
+        intro.addEventListener("sound-ended", () => handleIntroEnded(intro, amb));
         return;
       }
 
-      // --- ANDROID → AR FIRST, THEN INTRO ---
-      console.log("🤖 Android → entering AR first");
+      // Android / other → AR first, then intro
+      console.log("🤖 Android/desktop (START) → enter AR first");
 
-      // Enable AR features
-      scene.setAttribute("webxr", "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;");
+      scene.setAttribute("webxr",
+        "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;");
 
       try {
         await scene.enterAR();
@@ -245,17 +270,31 @@
         console.warn("enterAR() failed:", e);
       }
 
-      // Let AR stabilize
+      // Let AR stabilize a bit
       await new Promise(r => setTimeout(r, 300));
 
-      // Play intro AFTER AR is entered
       intro.components.sound.playSound();
+      intro.addEventListener("sound-ended", () => handleIntroEnded(intro, amb));
+    });
 
-      intro.addEventListener("sound-ended", () => {
-        document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible","true"));
-        amb.components.sound.playSound();
-        crossfade(intro, amb, 2000);
-      });
+    // === DESKTOP DEBUG BUTTON ===
+    document.querySelector("#debugButton").addEventListener("click", () => {
+      const overlay = document.querySelector("#startOverlay");
+      const intro = document.querySelector("#intro");
+      const amb = document.querySelector("#ambient");
+      const camera = document.querySelector("#camera");
+
+      console.log("🖥 Desktop debug mode: WASD + mouse");
+
+      overlay.style.display = "none";
+
+      // Enable WASD + pointer lock for desktop debug
+      camera.setAttribute("wasd-controls", "enabled: true");
+      camera.setAttribute("look-controls", "pointerLockEnabled: true");
+
+      // No AR here, just play intro and continue as normal
+      intro.components.sound.playSound();
+      intro.addEventListener("sound-ended", () => handleIntroEnded(intro, amb));
     });
   </script>
 
