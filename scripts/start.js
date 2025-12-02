@@ -12,6 +12,7 @@ window.onload = () => {
   }
 
   startButton.addEventListener("click", async () => {
+
     const overlay = document.querySelector("#startOverlay");
     const intro = document.querySelector("#intro");
     const ambient = document.querySelector("#ambient");
@@ -19,10 +20,11 @@ window.onload = () => {
 
     overlay.style.display = "none";
 
-    // -------------------------------
-    // iPHONE MODE (Audio-Only)
-    // -------------------------------
+    // -------------------------------------
+    // iPHONE MODE (Audio Only)
+    // -------------------------------------
     if (isIOS()) {
+
       intro.components.sound.playSound();
 
       intro.addEventListener("sound-ended", () => {
@@ -32,9 +34,9 @@ window.onload = () => {
       return;
     }
 
-    // -------------------------------
+    // -------------------------------------
     // ANDROID / DESKTOP AR MODE
-    // -------------------------------
+    // -------------------------------------
     scene.setAttribute(
       "webxr",
       "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
@@ -46,7 +48,7 @@ window.onload = () => {
       console.warn("AR entry failed:", e);
     }
 
-    // Delay for WebXR activation before playing intro
+    // Wait for AR session before playing intro
     setTimeout(() => {
       intro.components.sound.playSound();
 
@@ -54,6 +56,7 @@ window.onload = () => {
         handleIntroEnded(intro, ambient);
       });
     }, 500);
-  });
 
-}; // ← closes window.onload
+  }); // end click handler
+
+}; // end window.onload
