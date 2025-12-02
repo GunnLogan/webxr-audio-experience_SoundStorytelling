@@ -121,35 +121,48 @@ AFRAME.registerComponent("cluster-proximity", {
 
 // Ambient center controller
 // Plays ambience ONCE the first time the user comes within `radius` of this entity
-AFRAME.registerComponent("ambient-center", {
+AFRAME.registerComponent("ambient-proximity", {
   schema: {
     ambient: { type: "selector" },
-    radius: { default: 0.75 }
+    maxRadius: { default: 3 },   // maximum distance where ambience can be heard
+    falloff:  { default: 0.1 }   // volume reduction per 0.1 meter
   },
 
   init: function () {
-    this.hasPlayed = false;
-    this.wasInside = false;
+    this.started = false;
   },
 
   tick: function () {
-    if (this.hasPlayed) return;
+    const scene = this.el.sceneEl;
+    if (!scene || !scene.camera) return;
 
-    const sceneEl = this.el.sceneEl;
-    if (!sceneEl || !sceneEl.camera) return;
-
-    const camPos = sceneEl.camera.el.object3D.position;
+    const camPos = scene.camera.el.object3D.position;
     const centerPos = this.el.object3D.position;
-    const dist = camPos.distanceTo(centerPos);
 
-    const inside = dist < this.data.radius;
+    const ambient = this.data.ambient?.components?.sound;
+    if (!ambient) return;
 
-    if (inside && !this.wasInside && this.data.ambient && this.data.ambient.components && this.data.ambient.components.sound) {
-      // First time entering the center radius → play ambience once
-      this.data.ambient.components.sound.playSound();
-      this.hasPlayed = true;
+    // Start ambience on first detection
+    if (!this.started) {
+      ambient.playSound();
+      this.started = true;
     }
 
-    this.wasInside = inside;
+    // Distance from center
+    const dist = camPos.distanceTo(centerPos);
+
+    // Convert 0.1m into volume steps
+    const steps = dist / 0.1;
+
+    // Falloff per step
+    let volume = Math.max(0, 1 - (steps * this.data.falloff));
+
+    // Clamp outside radius
+    if (dist > this.data.maxRadius) {
+      volume = 0;
+    }
+
+    ambient.volume = volume;
   }
 });
+
