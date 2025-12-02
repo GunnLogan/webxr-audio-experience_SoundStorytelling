@@ -1,8 +1,9 @@
-document.addEventListener("DOMContentLoaded", () => {
+window.onload = () => {
 
   const debugButton = document.querySelector("#debugButton");
+
   if (!debugButton) {
-    console.error("DEBUG button not found");
+    console.error("ERROR: #debugButton not found in DOM");
     return;
   }
 
@@ -14,18 +15,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     overlay.style.display = "none";
 
+    // Enable WASD + mouse
     camera.setAttribute("wasd-controls", "enabled:true");
     camera.setAttribute(
       "look-controls",
       "enabled:true; pointerLockEnabled:false; magicWindowTracking:false;"
     );
-
     camera.setAttribute("position", "0 1.6 0");
 
+    // Play intro for debug mode
     intro.components.sound.playSound();
     intro.addEventListener("sound-ended", () =>
       handleIntroEnded(intro, ambient)
     );
   });
 
-});
+};
