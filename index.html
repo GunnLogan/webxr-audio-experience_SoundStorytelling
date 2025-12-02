@@ -35,30 +35,57 @@
     position="0 1.6 0">
   </a-entity>
 
-  <!-- INTRO -->
-  <a-entity id="intro" sound="src:url(assets/audio/audio_intro.wav); autoplay:false; positional:false; loop:false; volume:1;"></a-entity>
+  <!-- INTRO (plays once via start.js) -->
+  <a-entity id="intro"
+    sound="src:url(assets/audio/audio_intro.wav);
+           autoplay:false;
+           positional:false;
+           loop:false;
+           volume:1;">
+  </a-entity>
 
-  <!-- AMBIENCE -->
-  <a-entity id="ambient" sound="src:url(assets/audio/audio_ambience.wav); autoplay:false; positional:false; loop:true; volume:0;"></a-entity>
+  <!-- AMBIENCE (non-looping, triggered once near center by ambient-center) -->
+  <a-entity id="ambient"
+    sound="src:url(assets/audio/audio_ambience.wav);
+           autoplay:false;
+           positional:false;
+           loop:false;
+           volume:1;">
+  </a-entity>
+
+  <!-- AMBIENT CENTER CONTROLLER (radius 0.75 m around world center) -->
+  <a-entity id="ambientCenter"
+    position="0 1 0"
+    ambient-center="ambient:#ambient; radius:0.75">
+  </a-entity>
 
   <!-- SIMPLE GRID -->
   <a-entity line="start:-5 0 0; end:5 0 0; color:#555"></a-entity>
   <a-entity line="start:0 0 -5; end:0 0 5; color:#555"></a-entity>
 
-
   <!-- =============================================================== -->
-  <!--  FRONT = AUDIO 1 (tight cluster)                                -->
+  <!--  FRONT = AUDIO 1                                                -->
+  <!--  A1 = 1 m forward from center                                  -->
+  <!--  B1 = 1 m forward from A1                                      -->
+  <!--  C1 = 1 m diag right from B1                                   -->
+  <!--  D1 = 1 m diag left from B1                                    -->
   <!-- =============================================================== -->
 
-  <!-- Debug Spheres -->
-  <a-sphere id="a1" radius="0.75" color="#FFD400" visible="false" position="0 1 -2"></a-sphere>
-  <a-sphere id="b1" radius="0.75" color="#00FFFF" visible="false" position="0 1 -2.8"></a-sphere>
-  <a-sphere id="c1" radius="0.75" color="#FF8800" visible="false" position="1 1 -2.8"></a-sphere>
-  <a-sphere id="d1" radius="0.75" color="#FF8800" visible="false" position="-1 1 -2.8"></a-sphere>
+  <!-- Debug / logical spheres -->
+  <a-sphere id="a1" radius="0.75" color="#FFD400" visible="false" position="0 1 -1"></a-sphere>
+  <a-sphere id="b1" radius="0.75" color="#00FFFF" visible="false" position="0 1 -2"></a-sphere>
+  <a-sphere id="c1" radius="0.75" color="#FF8800" visible="false" position="1 1 -2"></a-sphere>
+  <a-sphere id="d1" radius="0.75" color="#FF8800" visible="false" position="-1 1 -2"></a-sphere>
 
-  <!-- Trigger -->
-  <a-entity id="frontTrigger" position="0 1 -2"
-    proximity-trigger="
+  <!-- Audio entities -->
+  <a-entity id="s1"  sound="src:url(assets/audio/audio_1.wav);  positional:false; loop:false;"></a-entity>
+  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s1c" sound="src:url(assets/audio/audio_1c.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s1d" sound="src:url(assets/audio/audio_1d.wav); positional:false; loop:false;"></a-entity>
+
+  <!-- Cluster controller (per-sphere triggers handled in component) -->
+  <a-entity id="frontCluster"
+    cluster-proximity="
       soundA:#s1;
       soundB:#s1b;
       soundC:#s1c;
@@ -67,28 +94,25 @@
       bsphere:#b1;
       csphere:#c1;
       dsphere:#d1;
-      ambient:#ambient;
-      distance:1.5;">
+      distance:0.75;">
   </a-entity>
 
-  <!-- Audio -->
-  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav); positional:false"></a-entity>
-  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav); positional:false"></a-entity>
-  <a-entity id="s1c" sound="src:url(assets/audio/audio_1c.wav); positional:false"></a-entity>
-  <a-entity id="s1d" sound="src:url(assets/audio/audio_1d.wav); positional:false"></a-entity>
-
-
   <!-- =============================================================== -->
-  <!--  BACK = AUDIO 2 (tight cluster)                                 -->
+  <!--  BACK = AUDIO 2                                                 -->
   <!-- =============================================================== -->
 
-  <a-sphere id="a2" radius="0.75" color="#FFD400" visible="false" position="0 1 2"></a-sphere>
-  <a-sphere id="b2" radius="0.75" color="#00FFFF" visible="false" position="0 1 2.8"></a-sphere>
-  <a-sphere id="c2" radius="0.75" color="#FF8800" visible="false" position="-1 1 2.8"></a-sphere>
-  <a-sphere id="d2" radius="0.75" color="#FF8800" visible="false" position="1 1 2.8"></a-sphere>
+  <a-sphere id="a2" radius="0.75" color="#FFD400" visible="false" position="0 1 1"></a-sphere>
+  <a-sphere id="b2" radius="0.75" color="#00FFFF" visible="false" position="0 1 2"></a-sphere>
+  <a-sphere id="c2" radius="0.75" color="#FF8800" visible="false" position="-1 1 2"></a-sphere>
+  <a-sphere id="d2" radius="0.75" color="#FF8800" visible="false" position="1 1 2"></a-sphere>
 
-  <a-entity id="backTrigger" position="0 1 2"
-    proximity-trigger="
+  <a-entity id="s2"  sound="src:url(assets/audio/audio_2.wav);  positional:false; loop:false;"></a-entity>
+  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s2c" sound="src:url(assets/audio/audio_2c.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s2d" sound="src:url(assets/audio/audio_2d.wav); positional:false; loop:false;"></a-entity>
+
+  <a-entity id="backCluster"
+    cluster-proximity="
       soundA:#s2;
       soundB:#s2b;
       soundC:#s2c;
@@ -97,74 +121,8 @@
       bsphere:#b2;
       csphere:#c2;
       dsphere:#d2;
-      ambient:#ambient;
-      distance:1.5;">
+      distance:0.75;">
   </a-entity>
 
-  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav); positional:false"></a-entity>
-  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav); positional:false"></a-entity>
-  <a-entity id="s2c" sound="src:url(assets/audio/audio_2c.wav); positional:false"></a-entity>
-  <a-entity id="s2d" sound="src:url(assets/audio/audio_2d.wav); positional:false"></a-entity>
-
-
   <!-- =============================================================== -->
-  <!--  RIGHT = AUDIO 3 (tight cluster)                                -->
-  <!-- =============================================================== -->
-
-  <a-sphere id="a3" radius="0.75" color="#FFD400" visible="false" position="2 1 0"></a-sphere>
-  <a-sphere id="b3" radius="0.75" color="#00FFFF" visible="false" position="2.8 1 0"></a-sphere>
-  <a-sphere id="c3" radius="0.75" color="#FF8800" visible="false" position="2.8 1 1"></a-sphere>
-  <a-sphere id="d3" radius="0.75" color="#FF8800" visible="false" position="2.8 1 -1"></a-sphere>
-
-  <a-entity id="rightTrigger" position="2 1 0"
-    proximity-trigger="
-      soundA:#s3;
-      soundB:#s3b;
-      soundC:#s3c;
-      soundD:#s3d;
-      asphere:#a3;
-      bsphere:#b3;
-      csphere:#c3;
-      dsphere:#d3;
-      ambient:#ambient;
-      distance:1.5;">
-  </a-entity>
-
-  <a-entity id="s3" sound="src:url(assets/audio/audio_3.wav); positional:false"></a-entity>
-  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav); positional:false"></a-entity>
-  <a-entity id="s3c" sound="src:url(assets/audio/audio_3c.wav); positional:false"></a-entity>
-  <a-entity id="s3d" sound="src:url(assets/audio/audio_3d.wav); positional:false"></a-entity>
-
-
-  <!-- =============================================================== -->
-  <!--  LEFT = AUDIO 4 (tight cluster)                                 -->
-  <!-- =============================================================== -->
-
-  <a-sphere id="a4" radius="0.75" color="#FFD400" visible="false" position="-2 1 0"></a-sphere>
-  <a-sphere id="b4" radius="0.75" color="#00FFFF" visible="false" position="-2.8 1 0"></a-sphere>
-  <a-sphere id="c4" radius="0.75" color="#FF8800" visible="false" position="-2.8 1 -1"></a-sphere>
-  <a-sphere id="d4" radius="0.75" color="#FF8800" visible="false" position="-2.8 1 1"></a-sphere>
-
-  <a-entity id="leftTrigger" position="-2 1 0"
-    proximity-trigger="
-      soundA:#s4;
-      soundB:#s4b;
-      soundC:#s4c;
-      soundD:#s4d;
-      asphere:#a4;
-      bsphere:#b4;
-      csphere:#c4;
-      dsphere:#d4;
-      ambient:#ambient;
-      distance:1.5;">
-  </a-entity>
-
-  <a-entity id="s4" sound="src:url(assets/audio/audio_4.wav); positional:false"></a-entity>
-  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav); positional:false"></a-entity>
-  <a-entity id="s4c" sound="src:url(assets/audio/audio_4c.wav); positional:false"></a-entity>
-  <a-entity id="s4d" sound="src:url(assets/audio/audio_4d.wav); positional:false"></a-entity>
-
-</a-scene>
-
-</body>
-</html>
+  <!--  RIGHT = AUDIO 3
