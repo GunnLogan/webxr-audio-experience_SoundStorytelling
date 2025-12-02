@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>WebXR Audio Experience</title>
 
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=15"></script>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=17"></script>
 
   <style>
     /* START screen */
@@ -30,7 +30,7 @@
       border: none;
     }
 
-    /* FORCE REMOVE all A-Frame VR/AR buttons */
+    /* Remove ALL A-Frame VR/AR buttons */
     .a-enter-vr,
     .a-enter-ar {
       display: none !important;
@@ -54,6 +54,7 @@
         this.secondaryPlayed = false;
         this.insideZone = false;
 
+        // Hide B sphere initially
         if (this.data.bsphere) {
           this.data.bsphere.setAttribute("visible", "false");
         }
@@ -134,12 +135,12 @@
 
     <!-- INTRO -->
     <a-entity id="intro"
-      sound="src: url(assets/audio/audio_intro.wav?v=15); autoplay: false; loop: false; volume: 1.0; positional: false;">
+      sound="src: url(assets/audio/audio_intro.wav?v=17); autoplay: false; loop: false; volume: 1.0; positional: false;">
     </a-entity>
 
     <!-- AMBIENCE -->
     <a-entity id="ambient"
-      sound="src: url(assets/audio/audio_ambience.wav?v=15); autoplay: false; loop: true; volume: 0.0; positional: false;">
+      sound="src: url(assets/audio/audio_ambience.wav?v=17); autoplay: false; loop: true; volume: 0.0; positional: false;">
     </a-entity>
 
     <!-- === CORNER 1 === -->
@@ -150,8 +151,8 @@
       proximity-trigger="sound:#s1; nextsound:#s1b; distance:1.5;
                          asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
 
-    <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=15); positional: true;"></a-entity>
-    <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=17); positional: true;"></a-entity>
 
     <!-- === CORNER 2 === -->
     <a-sphere id="a2" class="asphere" visible="false" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
@@ -161,8 +162,8 @@
       proximity-trigger="sound:#s2; nextsound:#s2b; distance:1.5;
                          asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
 
-    <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=15); positional: true;"></a-entity>
-    <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=17); positional: true;"></a-entity>
 
     <!-- === CORNER 3 === -->
     <a-sphere id="a3" class="asphere" visible="false" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
@@ -172,8 +173,8 @@
       proximity-trigger="sound:#s3; nextsound:#s3b; distance:1.5;
                          asphere:#a3; bsphere:#b3; ambient:#ambient"></a-entity>
 
-    <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=15); positional: true;"></a-entity>
-    <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=17); positional: true;"></a-entity>
 
     <!-- === CORNER 4 === -->
     <a-sphere id="a4" class="asphere" visible="false" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
@@ -183,8 +184,8 @@
       proximity-trigger="sound:#s4; nextsound:#s4b; distance:1.5;
                          asphere:#a4; bsphere:#b4; ambient:#ambient"></a-entity>
 
-    <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=15); positional: true;"></a-entity>
-    <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=15); positional: true;"></a-entity>
+    <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=17); positional: true;"></a-entity>
+    <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=17); positional: true;"></a-entity>
 
   </a-scene>
 
@@ -214,43 +215,47 @@
       const amb = document.querySelector("#ambient");
       const scene = document.querySelector("a-scene");
 
-      // --- iPhone → AUDIO-ONLY MODE ---
+      // Hide START immediately
+      overlay.style.display = "none";
+
+      // --- iPHONE → AUDIO ONLY ---
       if (isIOS()) {
-        console.log("🍎 iPhone detected → Audio-only mode");
+        console.log("🍎 iPhone → audio-only");
 
         intro.components.sound.playSound();
 
         intro.addEventListener("sound-ended", () => {
-          document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible", "true"));
+          document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible","true"));
           amb.components.sound.playSound();
           crossfade(intro, amb, 2000);
         });
 
-        overlay.style.display = "none";
         return;
       }
 
-      // --- ANDROID → AR DEBUG MODE ---
-      console.log("🤖 Android detected → AR debug mode enabled");
+      // --- ANDROID → AR FIRST, THEN INTRO ---
+      console.log("🤖 Android → entering AR first");
 
-      // Enable AR dynamically
+      // Enable AR features
       scene.setAttribute("webxr", "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;");
-
-      intro.components.sound.playSound();
-
-      intro.addEventListener("sound-ended", () => {
-        document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible", "true"));
-        amb.components.sound.playSound();
-        crossfade(intro, amb, 2000);
-      });
-
-      overlay.style.display = "none";
 
       try {
         await scene.enterAR();
       } catch (e) {
         console.warn("enterAR() failed:", e);
       }
+
+      // Let AR stabilize
+      await new Promise(r => setTimeout(r, 300));
+
+      // Play intro AFTER AR is entered
+      intro.components.sound.playSound();
+
+      intro.addEventListener("sound-ended", () => {
+        document.querySelectorAll(".asphere").forEach(a => a.setAttribute("visible","true"));
+        amb.components.sound.playSound();
+        crossfade(intro, amb, 2000);
+      });
     });
   </script>
 
