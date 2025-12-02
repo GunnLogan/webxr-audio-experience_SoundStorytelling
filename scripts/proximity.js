@@ -1,4 +1,6 @@
-// Cluster proximity controller
+/***********************************************************
+ *  CLUSTER PROXIMITY CONTROLLER (A → B → C&D progression)
+ ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
     soundA: { type: "selector" },
@@ -11,25 +13,21 @@ AFRAME.registerComponent("cluster-proximity", {
     csphere: { type: "selector" },
     dsphere: { type: "selector" },
 
-    distance: { default: 0.75 } // trigger radius around each sphere
+    distance: { default: 0.75 }
   },
 
   init: function () {
-    // Inside flags (for detecting enter vs stay)
     this.aInside = false;
     this.bInside = false;
     this.cInside = false;
     this.dInside = false;
 
-    // Unlock state
     this.bUnlocked = false;
     this.cUnlocked = false;
     this.dUnlocked = false;
 
     const d = this.data;
 
-    // Initial visibility:
-    // A visible, B/C/D hidden until unlocked
     if (d.asphere) d.asphere.setAttribute("visible", true);
     if (d.bsphere) d.bsphere.setAttribute("visible", false);
     if (d.csphere) d.csphere.setAttribute("visible", false);
@@ -43,7 +41,6 @@ AFRAME.registerComponent("cluster-proximity", {
     const camPos = sceneEl.camera.el.object3D.position;
     const d = this.data;
 
-    // Helper to get distance to a sphere, or Infinity if missing
     const getDist = (sphere) => {
       if (!sphere) return Infinity;
       return camPos.distanceTo(sphere.object3D.position);
@@ -54,16 +51,15 @@ AFRAME.registerComponent("cluster-proximity", {
     const distC = getDist(d.csphere);
     const distD = getDist(d.dsphere);
 
-    // ---------------------------
-    // A: always active
-    // ---------------------------
-    if (d.asphere && d.soundA && d.soundA.components && d.soundA.components.sound) {
+    /* -------------------
+       A TRIGGER (always active)
+       ------------------- */
+    if (d.asphere && d.soundA?.components?.sound) {
       const inA = distA < d.distance;
+
       if (inA && !this.aInside) {
-        // Just entered A-zone → play A
         d.soundA.components.sound.playSound();
 
-        // Unlock B (once unlocked, it stays unlocked)
         if (!this.bUnlocked) {
           this.bUnlocked = true;
           if (d.bsphere) d.bsphere.setAttribute("visible", true);
@@ -72,16 +68,15 @@ AFRAME.registerComponent("cluster-proximity", {
       this.aInside = inA;
     }
 
-    // ---------------------------
-    // B: only if unlocked by A
-    // ---------------------------
-    if (this.bUnlocked && d.bsphere && d.soundB && d.soundB.components && d.soundB.components.sound) {
+    /* -------------------
+       B TRIGGER
+       ------------------- */
+    if (this.bUnlocked && d.bsphere && d.soundB?.components?.sound) {
       const inB = distB < d.distance;
+
       if (inB && !this.bInside) {
-        // Just entered B-zone → play B
         d.soundB.components.sound.playSound();
 
-        // Unlock C and D
         if (!this.cUnlocked) {
           this.cUnlocked = true;
           if (d.csphere) d.csphere.setAttribute("visible", true);
@@ -94,42 +89,79 @@ AFRAME.registerComponent("cluster-proximity", {
       this.bInside = inB;
     }
 
-    // ---------------------------
-    // C: only if unlocked by B
-    // ---------------------------
-    if (this.cUnlocked && d.csphere && d.soundC && d.soundC.components && d.soundC.components.sound) {
+    /* -------------------
+       C TRIGGER
+       ------------------- */
+    if (this.cUnlocked && d.csphere && d.soundC?.components?.sound) {
       const inC = distC < d.distance;
+
       if (inC && !this.cInside) {
         d.soundC.components.sound.playSound();
       }
+
       this.cInside = inC;
     }
 
-    // ---------------------------
-    // D: only if unlocked by B
-    // ---------------------------
-    if (this.dUnlocked && d.dsphere && d.soundD && d.soundD.components && d.soundD.components.sound) {
+    /* -------------------
+       D TRIGGER
+       ------------------- */
+    if (this.dUnlocked && d.dsphere && d.soundD?.components?.sound) {
       const inD = distD < d.distance;
+
       if (inD && !this.dInside) {
         d.soundD.components.sound.playSound();
       }
+
       this.dInside = inD;
     }
   }
 });
 
 
-// Ambient center controller
-// Plays ambience ONCE the first time the user comes within `radius` of this entity
+/***********************************************************
+ *  AMBIENT PROXIMITY SYSTEM
+ *  - Volume fades by 0.05 every 10cm
+ *  - Max radius = 4m
+ *  - Inner plateau at 0.5m (full volume)
+ *  - Smooth low-pass filter
+ *  - 3D HRTF spatialisation
+ ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
     ambient: { type: "selector" },
-    maxRadius: { default: 3 },   // maximum distance where ambience can be heard
-    falloff:  { default: 0.1 }   // volume reduction per 0.1 meter
+    maxRadius: { default: 4 },     // ambience fades to silence at 4m
+    falloff:  { default: 0.05 },   // 5% volume drop per 10 cm
+    plateau:  { default: 0.5 }     // inner radius with full volume
   },
 
   init: function () {
     this.started = false;
+
+    const ambientEl = this.data.ambient;
+    if (!ambientEl) return;
+
+    const ctx = AFRAME.audioContext;
+
+    this.gainNode = ctx.createGain();
+    this.gainNode.gain.setValueAtTime(1, ctx.currentTime);
+
+    this.filter = ctx.createBiquadFilter();
+    this.filter.type = "lowpass";
+    this.filter.frequency.setValueAtTime(20000, ctx.currentTime);
+
+    this.panner = ctx.createPanner();
+    this.panner.panningModel = "HRTF";
+    this.panner.distanceModel = "inverse";
+    this.panner.refDistance = 1;
+    this.panner.rolloffFactor = 0.5;
+
+    this.panner.connect(this.filter);
+    this.filter.connect(this.gainNode);
+    this.gainNode.connect(ctx.destination);
+
+    ambientEl.components.sound.pool.children.forEach((sound) => {
+      sound.setNodeSource(this.panner);
+    });
   },
 
   tick: function () {
@@ -138,31 +170,52 @@ AFRAME.registerComponent("ambient-proximity", {
 
     const camPos = scene.camera.el.object3D.position;
     const centerPos = this.el.object3D.position;
-
     const ambient = this.data.ambient?.components?.sound;
     if (!ambient) return;
 
-    // Start ambience on first detection
+    /* Start ambience once */
     if (!this.started) {
       ambient.playSound();
       this.started = true;
     }
 
-    // Distance from center
     const dist = camPos.distanceTo(centerPos);
 
-    // Convert 0.1m into volume steps
-    const steps = dist / 0.1;
+    /* Update panner spatialisation */
+    this.panner.positionX.value = centerPos.x;
+    this.panner.positionY.value = centerPos.y;
+    this.panner.positionZ.value = centerPos.z;
 
-    // Falloff per step
+    /* -------------------------
+       INNER PLATEAU ZONE
+       ------------------------- */
+    if (dist <= this.data.plateau) {
+      this.gainNode.gain.value = 1.0;       // full volume
+      this.filter.frequency.value = 20000;  // no filtering
+      return;
+    }
+
+    /* -------------------------
+       VOLUME FALLOFF
+       ------------------------- */
+    const steps = dist / 0.1; // each 10cm
     let volume = Math.max(0, 1 - (steps * this.data.falloff));
 
-    // Clamp outside radius
     if (dist > this.data.maxRadius) {
       volume = 0;
     }
 
-    ambient.volume = volume;
+    this.gainNode.gain.value = volume;
+
+    /* -------------------------
+       DISTANCE-BASED LOW-PASS
+       ------------------------- */
+    const cutoffMin = 500;     // muffled far
+    const cutoffMax = 20000;   // clear near
+
+    const t = Math.min(1, dist / this.data.maxRadius);
+    const cutoff = cutoffMax - (t * (cutoffMax - cutoffMin));
+
+    this.filter.frequency.value = cutoff;
   }
 });
-
