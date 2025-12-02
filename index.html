@@ -35,55 +35,84 @@
     position="0 1.6 0">
   </a-entity>
 
-  <!-- INTRO (plays once via start.js) -->
+  <!-- INTRO -->
   <a-entity id="intro"
     sound="src:url(assets/audio/audio_intro.wav);
-           autoplay:false;
            positional:false;
+           autoplay:false;
            loop:false;
            volume:1;">
   </a-entity>
 
-  <!-- AMBIENCE (non-looping, triggered once near center by ambient-center) -->
+  <!-- AMBIENCE -->
   <a-entity id="ambient"
     sound="src:url(assets/audio/audio_ambience.wav);
            autoplay:false;
-           positional:false;
-           loop:false;
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:0.5;
            volume:1;">
   </a-entity>
 
-  <!-- AMBIENT CENTER CONTROLLER (radius 0.75 m around world center) -->
+  <!-- AMBIENT PROXIMITY CENTER -->
   <a-entity id="ambientCenter"
     position="0 1 0"
-    ambient-center="ambient:#ambient; radius:0.75">
+    ambient-proximity="ambient:#ambient;
+                       maxRadius:4;
+                       falloff:0.05;
+                       plateau:0.5">
   </a-entity>
 
-  <!-- SIMPLE GRID -->
-  <a-entity line="start:-5 0 0; end:5 0 0; color:#555"></a-entity>
-  <a-entity line="start:0 0 -5; end:0 0 5; color:#555"></a-entity>
-
   <!-- =============================================================== -->
-  <!--  FRONT = AUDIO 1                                                -->
-  <!--  A1 = 1 m forward from center                                  -->
-  <!--  B1 = 1 m forward from A1                                      -->
-  <!--  C1 = 1 m diag right from B1                                   -->
-  <!--  D1 = 1 m diag left from B1                                    -->
+  <!-- FRONT CLUSTER (1)                                               -->
   <!-- =============================================================== -->
 
-  <!-- Debug / logical spheres -->
-  <a-sphere id="a1" radius="0.75" color="#FFD400" visible="false" position="0 1 -1"></a-sphere>
-  <a-sphere id="b1" radius="0.75" color="#00FFFF" visible="false" position="0 1 -2"></a-sphere>
-  <a-sphere id="c1" radius="0.75" color="#FF8800" visible="false" position="1 1 -2"></a-sphere>
-  <a-sphere id="d1" radius="0.75" color="#FF8800" visible="false" position="-1 1 -2"></a-sphere>
+  <!-- A1 -->
+  <a-sphere id="a1" radius="0.3" color="#FFD400" visible="true" position="0 1 -1"></a-sphere>
+  <a-entity id="s1"
+    position="0 1 -1"
+    sound="src:url(assets/audio/audio_1.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
-  <!-- Audio entities -->
-  <a-entity id="s1"  sound="src:url(assets/audio/audio_1.wav);  positional:false; loop:false;"></a-entity>
-  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s1c" sound="src:url(assets/audio/audio_1c.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s1d" sound="src:url(assets/audio/audio_1d.wav); positional:false; loop:false;"></a-entity>
+  <!-- B1 -->
+  <a-sphere id="b1" radius="0.3" color="#00FFFF" visible="false" position="0 1 -2"></a-sphere>
+  <a-entity id="s1b"
+    position="0 1 -2"
+    sound="src:url(assets/audio/audio_1b.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
-  <!-- Cluster controller (per-sphere triggers handled in component) -->
+  <!-- C1 -->
+  <a-sphere id="c1" radius="0.3" color="#FF8800" visible="false" position="1 1 -2"></a-sphere>
+  <a-entity id="s1c"
+    position="1 1 -2"
+    sound="src:url(assets/audio/audio_1c.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- D1 -->
+  <a-sphere id="d1" radius="0.3" color="#FF8800" visible="false" position="-1 1 -2"></a-sphere>
+  <a-entity id="s1d"
+    position="-1 1 -2"
+    sound="src:url(assets/audio/audio_1d.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- FRONT CLUSTER TRIGGER -->
   <a-entity id="frontCluster"
     cluster-proximity="
       soundA:#s1;
@@ -94,22 +123,56 @@
       bsphere:#b1;
       csphere:#c1;
       dsphere:#d1;
-      distance:0.75;">
+      distance:0.75">
   </a-entity>
 
   <!-- =============================================================== -->
-  <!--  BACK = AUDIO 2                                                 -->
+  <!-- BACK CLUSTER (2)                                                -->
   <!-- =============================================================== -->
 
-  <a-sphere id="a2" radius="0.75" color="#FFD400" visible="false" position="0 1 1"></a-sphere>
-  <a-sphere id="b2" radius="0.75" color="#00FFFF" visible="false" position="0 1 2"></a-sphere>
-  <a-sphere id="c2" radius="0.75" color="#FF8800" visible="false" position="-1 1 2"></a-sphere>
-  <a-sphere id="d2" radius="0.75" color="#FF8800" visible="false" position="1 1 2"></a-sphere>
+  <!-- A2 -->
+  <a-sphere id="a2" radius="0.3" color="#FFD400" visible="true" position="0 1 1"></a-sphere>
+  <a-entity id="s2"
+    position="0 1 1"
+    sound="src:url(assets/audio/audio_2.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
-  <a-entity id="s2"  sound="src:url(assets/audio/audio_2.wav);  positional:false; loop:false;"></a-entity>
-  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s2c" sound="src:url(assets/audio/audio_2c.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s2d" sound="src:url(assets/audio/audio_2d.wav); positional:false; loop:false;"></a-entity>
+  <!-- B2 -->
+  <a-sphere id="b2" radius="0.3" color="#00FFFF" visible="false" position="0 1 2"></a-sphere>
+  <a-entity id="s2b"
+    position="0 1 2"
+    sound="src:url(assets/audio/audio_2b.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- C2 -->
+  <a-sphere id="c2" radius="0.3" color="#FF8800" visible="false" position="-1 1 2"></a-sphere>
+  <a-entity id="s2c"
+    position="-1 1 2"
+    sound="src:url(assets/audio/audio_2c.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- D2 -->
+  <a-sphere id="d2" radius="0.3" color="#FF8800" visible="false" position="1 1 2"></a-sphere>
+  <a-entity id="s2d"
+    position="1 1 2"
+    sound="src:url(assets/audio/audio_2d.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
   <a-entity id="backCluster"
     cluster-proximity="
@@ -121,22 +184,56 @@
       bsphere:#b2;
       csphere:#c2;
       dsphere:#d2;
-      distance:0.75;">
+      distance:0.75">
   </a-entity>
 
   <!-- =============================================================== -->
-  <!--  RIGHT = AUDIO 3                                                -->
+  <!-- RIGHT CLUSTER (3)                                               -->
   <!-- =============================================================== -->
 
-  <a-sphere id="a3" radius="0.75" color="#FFD400" visible="false" position="1 1 0"></a-sphere>
-  <a-sphere id="b3" radius="0.75" color="#00FFFF" visible="false" position="2 1 0"></a-sphere>
-  <a-sphere id="c3" radius="0.75" color="#FF8800" visible="false" position="2 1 1"></a-sphere>
-  <a-sphere id="d3" radius="0.75" color="#FF8800" visible="false" position="2 1 -1"></a-sphere>
+  <!-- A3 -->
+  <a-sphere id="a3" radius="0.3" color="#FFD400" visible="true" position="1 1 0"></a-sphere>
+  <a-entity id="s3"
+    position="1 1 0"
+    sound="src:url(assets/audio/audio_3.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
-  <a-entity id="s3"  sound="src:url(assets/audio/audio_3.wav);  positional:false; loop:false;"></a-entity>
-  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s3c" sound="src:url(assets/audio/audio_3c.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s3d" sound="src:url(assets/audio/audio_3d.wav); positional:false; loop:false;"></a-entity>
+  <!-- B3 -->
+  <a-sphere id="b3" radius="0.3" color="#00FFFF" visible="false" position="2 1 0"></a-sphere>
+  <a-entity id="s3b"
+    position="2 1 0"
+    sound="src:url(assets/audio/audio_3b.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- C3 -->
+  <a-sphere id="c3" radius="0.3" color="#FF8800" visible="false" position="2 1 1"></a-sphere>
+  <a-entity id="s3c"
+    position="2 1 1"
+    sound="src:url(assets/audio/audio_3c.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- D3 -->
+  <a-sphere id="d3" radius="0.3" color="#FF8800" visible="false" position="2 1 -1"></a-sphere>
+  <a-entity id="s3d"
+    position="2 1 -1"
+    sound="src:url(assets/audio/audio_3d.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
   <a-entity id="rightCluster"
     cluster-proximity="
@@ -148,22 +245,56 @@
       bsphere:#b3;
       csphere:#c3;
       dsphere:#d3;
-      distance:0.75;">
+      distance:0.75">
   </a-entity>
 
   <!-- =============================================================== -->
-  <!--  LEFT = AUDIO 4                                                 -->
+  <!-- LEFT CLUSTER (4)                                                -->
   <!-- =============================================================== -->
 
-  <a-sphere id="a4" radius="0.75" color="#FFD400" visible="false" position="-1 1 0"></a-sphere>
-  <a-sphere id="b4" radius="0.75" color="#00FFFF" visible="false" position="-2 1 0"></a-sphere>
-  <a-sphere id="c4" radius="0.75" color="#FF8800" visible="false" position="-2 1 -1"></a-sphere>
-  <a-sphere id="d4" radius="0.75" color="#FF8800" visible="false" position="-2 1 1"></a-sphere>
+  <!-- A4 -->
+  <a-sphere id="a4" radius="0.3" color="#FFD400" visible="true" position="-1 1 0"></a-sphere>
+  <a-entity id="s4"
+    position="-1 1 0"
+    sound="src:url(assets/audio/audio_4.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
-  <a-entity id="s4"  sound="src:url(assets/audio/audio_4.wav);  positional:false; loop:false;"></a-entity>
-  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s4c" sound="src:url(assets/audio/audio_4c.wav); positional:false; loop:false;"></a-entity>
-  <a-entity id="s4d" sound="src:url(assets/audio/audio_4d.wav); positional:false; loop:false;"></a-entity>
+  <!-- B4 -->
+  <a-sphere id="b4" radius="0.3" color="#00FFFF" visible="false" position="-2 1 0"></a-sphere>
+  <a-entity id="s4b"
+    position="-2 1 0"
+    sound="src:url(assets/audio/audio_4b.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- C4 -->
+  <a-sphere id="c4" radius="0.3" color="#FF8800" visible="false" position="-2 1 -1"></a-sphere>
+  <a-entity id="s4c"
+    position="-2 1 -1"
+    sound="src:url(assets/audio/audio_4c.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
+
+  <!-- D4 -->
+  <a-sphere id="d4" radius="0.3" color="#FF8800" visible="false" position="-2 1 1"></a-sphere>
+  <a-entity id="s4d"
+    position="-2 1 1"
+    sound="src:url(assets/audio/audio_4d.wav);
+           positional:true;
+           distanceModel:inverse;
+           refDistance:1;
+           rolloffFactor:1;">
+  </a-entity>
 
   <a-entity id="leftCluster"
     cluster-proximity="
@@ -175,10 +306,9 @@
       bsphere:#b4;
       csphere:#c4;
       dsphere:#d4;
-      distance:0.75;">
+      distance:0.75">
   </a-entity>
 
 </a-scene>
-
 </body>
 </html>
