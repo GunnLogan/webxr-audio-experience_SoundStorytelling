@@ -8,15 +8,15 @@
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
 
-    <!-- Proximity trigger with one-shot A + B audio and auto-hide spheres -->
+    <!-- Proximity trigger script -->
     <script>
       AFRAME.registerComponent("proximity-trigger", {
         schema: {
-          sound:{type:"selector"},
-          nextsound:{type:"selector"},
-          distance:{default:1.0},
-          asphere:{type:"selector"},
-          bsphere:{type:"selector"}
+          sound: {type:"selector"},
+          nextsound: {type:"selector"},
+          distance: {default:1.0},
+          asphere: {type:"selector"},
+          bsphere: {type:"selector"}
         },
 
         init: function () {
@@ -24,7 +24,7 @@
           this.primaryPlayed = false;
           this.secondaryPlayed = false;
 
-          // PRIMARY A ends → hide A sphere + play B
+          // PRIMARY sound logic
           if (this.data.sound) {
             this.data.sound.addEventListener("sound-ended", function () {
               if (self.data.asphere) self.data.asphere.setAttribute("visible", "false");
@@ -35,7 +35,7 @@
             });
           }
 
-          // SECONDARY B ends → hide B sphere
+          // SECONDARY hide logic
           if (this.data.nextsound) {
             this.data.nextsound.addEventListener("sound-ended", function () {
               if (self.data.bsphere) self.data.bsphere.setAttribute("visible", "false");
@@ -47,8 +47,8 @@
           if (this.primaryPlayed && this.secondaryPlayed) return;
 
           const cam = this.el.sceneEl.camera.el.object3D.position;
-          const pos = this.el.object3D.position;
-          const dist = cam.distanceTo(pos);
+          const obj = this.el.object3D.position;
+          const dist = cam.distanceTo(obj);
 
           if (dist < this.data.distance && !this.primaryPlayed) {
             const snd = this.data.sound.components.sound;
@@ -60,60 +60,62 @@
         }
       });
     </script>
+
   </head>
 
   <body>
     <a-scene
       renderer="colorManagement: true;"
       webxr="optionalFeatures: hit-test, local-floor;"
-      embedded
-      vr-mode-ui="enabled: false"
+      vr-mode-ui="enabled: true"
       ar-mode-ui="enabled: true">
 
       <!-- CAMERA -->
       <a-entity id="camera" camera look-controls></a-entity>
 
-      <!-- AMBIENT AUDIO -->
-      <a-entity id="ambient" sound="src: url(assets/audio/audio_Intro.wav); autoplay: true; loop: true; positional: false;"></a-entity>
+      <!-- AMBIENT AUDIO (NO AUTOPLAY HERE) -->
+      <a-entity id="ambient"
+        sound="src: url(assets/audio/audio_Intro.wav); loop: true; positional: false;">
+      </a-entity>
 
-      <!-- ======================== CORNER 1 ======================== -->
-      <a-sphere id="a1" color="#FFD400" radius="0.15" position="1 0 -1"></a-sphere>
-      <a-sphere id="b1" color="#00FFFF" radius="0.15" position="1 0 -1.2"></a-sphere>
+      <!-- ======================= CORNER 1 ======================= -->
+      <a-sphere id="a1" color="#FFD400" radius="0.15" position="1 1 -1"></a-sphere>
+      <a-sphere id="b1" color="#00FFFF" radius="0.15" position="1 1 -1.2"></a-sphere>
 
-      <a-entity id="corner1" position="1 0 -1"
+      <a-entity id="corner1" position="1 1 -1"
         proximity-trigger="sound:#s1; nextsound:#s1b; distance:0.7; asphere:#a1; bsphere:#b1">
       </a-entity>
 
       <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav); positional: true;"></a-entity>
       <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav); positional: true;"></a-entity>
 
-      <!-- ======================== CORNER 2 ======================== -->
-      <a-sphere id="a2" color="#FFD400" radius="0.15" position="-1 0 -1"></a-sphere>
-      <a-sphere id="b2" color="#00FFFF" radius="0.15" position="-1 0 -1.2"></a-sphere>
+      <!-- ======================= CORNER 2 ======================= -->
+      <a-sphere id="a2" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
+      <a-sphere id="b2" color="#00FFFF" radius="0.15" position="-1 1 -1.2"></a-sphere>
 
-      <a-entity id="corner2" position="-1 0 -1"
+      <a-entity id="corner2" position="-1 1 -1"
         proximity-trigger="sound:#s2; nextsound:#s2b; distance:0.7; asphere:#a2; bsphere:#b2">
       </a-entity>
 
       <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav); positional: true;"></a-entity>
       <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav); positional: true;"></a-entity>
 
-      <!-- ======================== CORNER 3 ======================== -->
-      <a-sphere id="a3" color="#FFD400" radius="0.15" position="1 0 1"></a-sphere>
-      <a-sphere id="b3" color="#00FFFF" radius="0.15" position="1 0 0.8"></a-sphere>
+      <!-- ======================= CORNER 3 ======================= -->
+      <a-sphere id="a3" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
+      <a-sphere id="b3" color="#00FFFF" radius="0.15" position="1 1 0.8"></a-sphere>
 
-      <a-entity id="corner3" position="1 0 1"
+      <a-entity id="corner3" position="1 1 1"
         proximity-trigger="sound:#s3; nextsound:#s3b; distance:0.7; asphere:#a3; bsphere:#b3">
       </a-entity>
 
       <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav); positional: true;"></a-entity>
       <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav); positional: true;"></a-entity>
 
-      <!-- ======================== CORNER 4 ======================== -->
-      <a-sphere id="a4" color="#FFD400" radius="0.15" position="-1 0 1"></a-sphere>
-      <a-sphere id="b4" color="#00FFFF" radius="0.15" position="-1 0 0.8"></a-sphere>
+      <!-- ======================= CORNER 4 ======================= -->
+      <a-sphere id="a4" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
+      <a-sphere id="b4" color="#00FFFF" radius="0.15" position="-1 1 0.8"></a-sphere>
 
-      <a-entity id="corner4" position="-1 0 1"
+      <a-entity id="corner4" position="-1 1 1"
         proximity-trigger="sound:#s4; nextsound:#s4b; distance:0.7; asphere:#a4; bsphere:#b4">
       </a-entity>
 
@@ -121,5 +123,16 @@
       <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav); positional: true;"></a-entity>
 
     </a-scene>
+
+    <!-- START AMBIENT AUDIO ON AR ENTRY -->
+    <script>
+      document.querySelector("a-scene").addEventListener("enter-vr", () => {
+        const ambient = document.querySelector("#ambient");
+        if (ambient && ambient.components.sound) {
+          ambient.components.sound.playSound();
+        }
+      });
+    </script>
+
   </body>
 </html>
