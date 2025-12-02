@@ -1,5 +1,7 @@
 /***********************************************************
- *  CLUSTER PROXIMITY CONTROLLER (A → B → C&D progression)
+ *  CLUSTER PROXIMITY CONTROLLER
+ *  A → B → C&D progression
+ *  A is one-shot per direction but reactivates when ANY other A is entered
  ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
@@ -22,6 +24,10 @@ AFRAME.registerComponent("cluster-proximity", {
     this.cInside = false;
     this.dInside = false;
 
+    // Special A-trigger rule:
+    // Aused = whether A has been triggered since last directional switch
+    this.Aused = false;
+
     this.bUnlocked = false;
     this.cUnlocked = false;
     this.dUnlocked = false;
@@ -32,6 +38,9 @@ AFRAME.registerComponent("cluster-proximity", {
     if (d.bsphere) d.bsphere.setAttribute("visible", false);
     if (d.csphere) d.csphere.setAttribute("visible", false);
     if (d.dsphere) d.dsphere.setAttribute("visible", false);
+
+    // Global reference to which A was triggered last
+    if (!window._lastATrigger) window._lastATrigger = null;
   },
 
   tick: function () {
@@ -41,36 +50,55 @@ AFRAME.registerComponent("cluster-proximity", {
     const camPos = sceneEl.camera.el.object3D.position;
     const d = this.data;
 
-    const getDist = (sphere) => {
-      if (!sphere) return Infinity;
-      return camPos.distanceTo(sphere.object3D.position);
-    };
+    const getDist = (sphere) => sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
 
     const distA = getDist(d.asphere);
     const distB = getDist(d.bsphere);
     const distC = getDist(d.csphere);
     const distD = getDist(d.dsphere);
 
-    /* -------------------
-       A TRIGGER (always active)
-       ------------------- */
+    /* ============================================================
+       A TRIGGER — one-shot per direction, reactivates when any
+       *other* A is entered
+    ============================================================ */
     if (d.asphere && d.soundA?.components?.sound) {
       const inA = distA < d.distance;
 
       if (inA && !this.aInside) {
-        d.soundA.components.sound.playSound();
+        const last = window._lastATrigger;
 
-        if (!this.bUnlocked) {
-          this.bUnlocked = true;
-          if (d.bsphere) d.bsphere.setAttribute("visible", true);
+        // PLAY if:
+        // - A has not been used yet OR
+        // - another A direction has been triggered after this one
+        if (!this.Aused || last !== this.el.id) {
+
+          d.soundA.components.sound.playSound();
+
+          this.Aused = true;
+          window._lastATrigger = this.el.id;
+
+          // Unlock B
+          if (!this.bUnlocked) {
+            this.bUnlocked = true;
+            if (d.bsphere) d.bsphere.setAttribute("visible", true);
+          }
+
+          // Reset Aused on ALL OTHER CLUSTERS
+          const clusters = document.querySelectorAll("[cluster-proximity]");
+          clusters.forEach((cl) => {
+            if (cl.id !== this.el.id) {
+              cl.components["cluster-proximity"].Aused = false;
+            }
+          });
         }
       }
+
       this.aInside = inA;
     }
 
-    /* -------------------
-       B TRIGGER
-       ------------------- */
+    /* ---------------------------
+       B TRIGGER (after A)
+       --------------------------- */
     if (this.bUnlocked && d.bsphere && d.soundB?.components?.sound) {
       const inB = distB < d.distance;
 
@@ -81,17 +109,19 @@ AFRAME.registerComponent("cluster-proximity", {
           this.cUnlocked = true;
           if (d.csphere) d.csphere.setAttribute("visible", true);
         }
+
         if (!this.dUnlocked) {
           this.dUnlocked = true;
           if (d.dsphere) d.dsphere.setAttribute("visible", true);
         }
       }
+
       this.bInside = inB;
     }
 
-    /* -------------------
+    /* ---------------------------
        C TRIGGER
-       ------------------- */
+       --------------------------- */
     if (this.cUnlocked && d.csphere && d.soundC?.components?.sound) {
       const inC = distC < d.distance;
 
@@ -102,9 +132,9 @@ AFRAME.registerComponent("cluster-proximity", {
       this.cInside = inC;
     }
 
-    /* -------------------
+    /* ---------------------------
        D TRIGGER
-       ------------------- */
+       --------------------------- */
     if (this.dUnlocked && d.dsphere && d.soundD?.components?.sound) {
       const inD = distD < d.distance;
 
@@ -120,18 +150,19 @@ AFRAME.registerComponent("cluster-proximity", {
 
 /***********************************************************
  *  AMBIENT PROXIMITY SYSTEM
- *  - Volume fades by 0.05 every 10cm
- *  - Max radius = 4m
- *  - Inner plateau at 0.5m (full volume)
- *  - Smooth low-pass filter
+ *  - Half volume base (0.5)
  *  - 3D HRTF spatialisation
+ *  - Low-pass filter increasing with distance
+ *  - Inner plateau (0–0.5m full clarity)
+ *  - Smooth fade every 10 cm
+ *  - Full silent beyond 4 meters
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
     ambient: { type: "selector" },
-    maxRadius: { default: 4 },     // ambience fades to silence at 4m
-    falloff:  { default: 0.05 },   // 5% volume drop per 10 cm
-    plateau:  { default: 0.5 }     // inner radius with full volume
+    maxRadius: { default: 4 },
+    falloff:  { default: 0.05 },
+    plateau:  { default: 0.5 }
   },
 
   init: function () {
@@ -143,7 +174,7 @@ AFRAME.registerComponent("ambient-proximity", {
     const ctx = AFRAME.audioContext;
 
     this.gainNode = ctx.createGain();
-    this.gainNode.gain.setValueAtTime(1, ctx.currentTime);
+    this.gainNode.gain.setValueAtTime(0.5, ctx.currentTime); // half volume
 
     this.filter = ctx.createBiquadFilter();
     this.filter.type = "lowpass";
@@ -171,9 +202,9 @@ AFRAME.registerComponent("ambient-proximity", {
     const camPos = scene.camera.el.object3D.position;
     const centerPos = this.el.object3D.position;
     const ambient = this.data.ambient?.components?.sound;
+
     if (!ambient) return;
 
-    /* Start ambience once */
     if (!this.started) {
       ambient.playSound();
       this.started = true;
@@ -181,37 +212,25 @@ AFRAME.registerComponent("ambient-proximity", {
 
     const dist = camPos.distanceTo(centerPos);
 
-    /* Update panner spatialisation */
     this.panner.positionX.value = centerPos.x;
     this.panner.positionY.value = centerPos.y;
     this.panner.positionZ.value = centerPos.z;
 
-    /* -------------------------
-       INNER PLATEAU ZONE
-       ------------------------- */
     if (dist <= this.data.plateau) {
-      this.gainNode.gain.value = 1.0;       // full volume
-      this.filter.frequency.value = 20000;  // no filtering
+      this.gainNode.gain.value = 0.5;
+      this.filter.frequency.value = 20000;
       return;
     }
 
-    /* -------------------------
-       VOLUME FALLOFF
-       ------------------------- */
-    const steps = dist / 0.1; // each 10cm
-    let volume = Math.max(0, 1 - (steps * this.data.falloff));
+    const steps = dist / 0.1;
+    let volume = Math.max(0, 0.5 * (1 - (steps * this.data.falloff)));
 
-    if (dist > this.data.maxRadius) {
-      volume = 0;
-    }
+    if (dist > this.data.maxRadius) volume = 0;
 
     this.gainNode.gain.value = volume;
 
-    /* -------------------------
-       DISTANCE-BASED LOW-PASS
-       ------------------------- */
-    const cutoffMin = 500;     // muffled far
-    const cutoffMax = 20000;   // clear near
+    const cutoffMin = 500;
+    const cutoffMax = 20000;
 
     const t = Math.min(1, dist / this.data.maxRadius);
     const cutoff = cutoffMax - (t * (cutoffMax - cutoffMin));
