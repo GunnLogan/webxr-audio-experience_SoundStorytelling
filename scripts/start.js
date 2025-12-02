@@ -43,5 +43,5 @@ window.onload = () => {
     } catch (e) {
       console.warn("AR entry failed:", e);
     }
-
+ }
     // Delay for WebXR act
