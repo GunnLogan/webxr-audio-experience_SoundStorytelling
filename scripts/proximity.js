@@ -94,9 +94,8 @@ AFRAME.registerComponent("proximity-trigger", {
       }
     }
 
-    // B trigger (based on trigger distance, not sphere position)
+    // B trigger
     if (this.insideZone && d.bsphere && d.bsphere.getAttribute("visible")) {
-
       if (!this.Bplayed && inside) {
         d.bsphere.setAttribute("visible","false");
         d.soundB.components.sound.playSound();
@@ -106,7 +105,6 @@ AFRAME.registerComponent("proximity-trigger", {
 
     // C trigger
     if (this.insideZone && d.csphere && d.csphere.getAttribute("visible")) {
-
       if (!this.Cplayed && inside) {
         d.csphere.setAttribute("visible","false");
         d.soundC.components.sound.playSound();
@@ -116,7 +114,6 @@ AFRAME.registerComponent("proximity-trigger", {
 
     // D trigger
     if (this.insideZone && d.dsphere && d.dsphere.getAttribute("visible")) {
-
       if (!this.Dplayed && inside) {
         d.dsphere.setAttribute("visible","false");
         d.soundD.components.sound.playSound();
@@ -129,14 +126,27 @@ AFRAME.registerComponent("proximity-trigger", {
 
       this.insideZone = false;
 
+      // Stop all sounds
       [d.soundA, d.soundB, d.soundC, d.soundD].forEach((s) => {
         if (s?.components.sound)
           s.components.sound.stopSound();
       });
 
+      // Reset flags
       this.Aplayed = false;
       this.Bplayed = false;
       this.Cplayed = false;
       this.Dplayed = false;
 
-      if (d.asphere) d.aspher
+      // Reset spheres
+      if (d.asphere) d.asphere.setAttribute("visible","true");
+      if (d.bsphere) d.bsphere.setAttribute("visible","false");
+      if (d.csphere) d.csphere.setAttribute("visible","false");
+      if (d.dsphere) d.dsphere.setAttribute("visible","false");
+
+      // Resume ambient
+      if (ambient && !ambient.isPlaying)
+        ambient.playSound();
+    }
+  }
+});
