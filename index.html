@@ -2,9 +2,9 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>WebXR Audio Experience</title>
+  <title>Grupp 7</title>
 
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=24"></script>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=25"></script>
 
   <style>
     #startOverlay {
@@ -21,6 +21,21 @@
       border:none; border-radius:12px; min-width:220px;
     }
     #debugButton { background:#ddd; }
+
+    /* Hint overlay for desktop debug */
+    #lookHint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 18px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 0.9rem;
+      border-radius: 999px;
+      z-index: 999998;
+      display: none;
+    }
 
     .a-enter-vr, .a-enter-ar { display:none !important; }
   </style>
@@ -123,6 +138,7 @@
 
 <body>
 
+<!-- START OVERLAY -->
 <div id="startOverlay">
   <div id="startButtons">
     <button id="startButton">START</button>
@@ -130,32 +146,44 @@
   </div>
 </div>
 
+<!-- DESKTOP LOOK HINT -->
+<div id="lookHint">CLICK TO LOOK AROUND (ESC to exit)</div>
+
 <a-scene renderer="colorManagement:true" vr-mode-ui="enabled:false" ar-mode-ui="enabled:false">
 
   <!-- CAMERA IN ABSOLUTE CENTER -->
   <a-entity id="camera"
     camera
     wasd-controls="enabled:false"
-    look-controls="pointerLockEnabled:false"
+    look-controls="enabled:false; pointerLockEnabled:false"
     position="0 1.6 0">
   </a-entity>
 
   <!-- INTRO -->
   <a-entity id="intro"
-    sound="src:url(assets/audio/audio_intro.wav?v=24); autoplay:false; positional:false; loop:false; volume:1;">
+    sound="src:url(assets/audio/audio_intro.wav?v=25); autoplay:false; positional:false; loop:false; volume:1;">
   </a-entity>
 
   <!-- AMBIENCE -->
   <a-entity id="ambient"
-    sound="src:url(assets/audio/audio_ambience.wav?v=24); autoplay:false; positional:false; loop:true; volume:0;">
+    sound="src:url(assets/audio/audio_ambience.wav?v=25); autoplay:false; positional:false; loop:true; volume:0;">
   </a-entity>
 
+  <!-- MINIMAL CROSSHAIR GRID (Y=0 plane) -->
+  <!-- X axis lines -->
+  <a-entity line="start:-5 0 0; end:5 0 0; color:#555"></a-entity>
+  <!-- Z axis lines -->
+  <a-entity line="start:0 0 -5; end:0 0 5; color:#555"></a-entity>
+  <!-- Short ticks on axes -->
+  <a-entity line="start:-5 0 -0.1; end:-5 0 0.1; color:#555"></a-entity>
+  <a-entity line="start:5 0 -0.1; end:5 0 0.1; color:#555"></a-entity>
+  <a-entity line="start:-0.1 0 -5; end:0.1 0 -5; color:#555"></a-entity>
+  <a-entity line="start:-0.1 0 5; end:0.1 0 5; color:#555"></a-entity>
 
   <!-- === FINAL DEEP CORNER POSITIONS === -->
   <!-- A = (±2, ±2)  radius=0.75 -->
   <!-- B = (±3.75, ±3.75) radius=0.75 -->
   <!-- TRIGGERS placed EXACTLY at A positions -->
-
 
   <!-- CORNER 1 -->
   <a-sphere id="a1" class="asphere" visible="false"
@@ -168,8 +196,8 @@
     proximity-trigger="sound:#s1; nextsound:#s1b; distance:1.5;
                        asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
 
-  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav?v=24); positional:true"></a-entity>
-  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav?v=24); positional:true"></a-entity>
+  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav?v=25); positional:true"></a-entity>
+  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav?v=25); positional:true"></a-entity>
 
 
   <!-- CORNER 2 -->
@@ -183,8 +211,8 @@
     proximity-trigger="sound:#s2; nextsound:#s2b; distance:1.5;
                        asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
 
-  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav?v=24); positional:true"></a-entity>
-  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav?v=24); positional:true"></a-entity>
+  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav?v=25); positional:true"></a-entity>
+  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav?v=25); positional:true"></a-entity>
 
 
   <!-- CORNER 3 -->
@@ -198,8 +226,8 @@
     proximity-trigger="sound:#s3; nextsound:#s3b; distance:1.5;
                        asphere:#a3; bsphere:#b3; ambient:#ambient"></a-entity>
 
-  <a-entity id="s3" sound="src:url(assets/audio/audio_3.wav?v=24); positional:true"></a-entity>
-  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav?v=24); positional:true"></a-entity>
+  <a-entity id="s3" sound="src:url(assets/audio/audio_3.wav?v=25); positional:true"></a-entity>
+  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav?v=25); positional:true"></a-entity>
 
 
   <!-- CORNER 4 -->
@@ -213,8 +241,8 @@
     proximity-trigger="sound:#s4; nextsound:#s4b; distance:1.5;
                        asphere:#a4; bsphere:#b4; ambient:#ambient"></a-entity>
 
-  <a-entity id="s4" sound="src:url(assets/audio/audio_4.wav?v=24); positional:true"></a-entity>
-  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav?v=24); positional:true"></a-entity>
+  <a-entity id="s4" sound="src:url(assets/audio/audio_4.wav?v=25); positional:true"></a-entity>
+  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav?v=25); positional:true"></a-entity>
 
 </a-scene>
 
@@ -243,6 +271,37 @@
     crossfade(intro, amb);
   }
 
+  // --- DESKTOP POINTER LOCK SETUP ---
+  function enableDesktopPointerLock() {
+    const canvas = document.querySelector("canvas");
+    const camera = document.querySelector("#camera");
+    const lookHint = document.querySelector("#lookHint");
+
+    if (!canvas) return;
+
+    lookHint.style.display = "block";
+
+    // Click on canvas → request pointer lock
+    canvas.addEventListener("click", () => {
+      canvas.requestPointerLock();
+    });
+
+    // Pointer lock change → toggle look-controls + hint
+    document.addEventListener("pointerlockchange", () => {
+      const locked = document.pointerLockElement === canvas;
+
+      if (locked) {
+        camera.setAttribute("look-controls","enabled:true; pointerLockEnabled:false");
+        lookHint.style.display = "none";
+      } else {
+        // When pointer lock is exited (ESC), show hint again
+        camera.setAttribute("look-controls","enabled:false; pointerLockEnabled:false");
+        lookHint.style.display = "block";
+      }
+    });
+  }
+
+  // START BUTTON
   document.querySelector("#startButton").addEventListener("click", async()=>{
     const overlay=document.querySelector("#startOverlay");
     const intro=document.querySelector("#intro");
@@ -266,6 +325,7 @@
     intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
   });
 
+  // DESKTOP DEBUG BUTTON
   document.querySelector("#debugButton").addEventListener("click",()=>{
     const overlay=document.querySelector("#startOverlay");
     const intro=document.querySelector("#intro");
@@ -274,9 +334,13 @@
 
     overlay.style.display="none";
 
+    // Enable WASD; look-controls will be toggled by pointer lock handler
     camera.setAttribute("wasd-controls","enabled:true");
-    camera.setAttribute("look-controls","pointerLockEnabled:true");
+    camera.setAttribute("look-controls","enabled:false; pointerLockEnabled:false");
     camera.setAttribute("position","0 1.6 0");
+
+    // Setup pointer lock & hint after scene is ready
+    setTimeout(enableDesktopPointerLock, 300);
 
     intro.components.sound.playSound();
     intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
