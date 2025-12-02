@@ -125,4 +125,60 @@
   </a-entity>
 
   <!-- =============================================================== -->
-  <!--  RIGHT = AUDIO 3
+  <!--  RIGHT = AUDIO 3                                                -->
+  <!-- =============================================================== -->
+
+  <a-sphere id="a3" radius="0.75" color="#FFD400" visible="false" position="1 1 0"></a-sphere>
+  <a-sphere id="b3" radius="0.75" color="#00FFFF" visible="false" position="2 1 0"></a-sphere>
+  <a-sphere id="c3" radius="0.75" color="#FF8800" visible="false" position="2 1 1"></a-sphere>
+  <a-sphere id="d3" radius="0.75" color="#FF8800" visible="false" position="2 1 -1"></a-sphere>
+
+  <a-entity id="s3"  sound="src:url(assets/audio/audio_3.wav);  positional:false; loop:false;"></a-entity>
+  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s3c" sound="src:url(assets/audio/audio_3c.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s3d" sound="src:url(assets/audio/audio_3d.wav); positional:false; loop:false;"></a-entity>
+
+  <a-entity id="rightCluster"
+    cluster-proximity="
+      soundA:#s3;
+      soundB:#s3b;
+      soundC:#s3c;
+      soundD:#s3d;
+      asphere:#a3;
+      bsphere:#b3;
+      csphere:#c3;
+      dsphere:#d3;
+      distance:0.75;">
+  </a-entity>
+
+  <!-- =============================================================== -->
+  <!--  LEFT = AUDIO 4                                                 -->
+  <!-- =============================================================== -->
+
+  <a-sphere id="a4" radius="0.75" color="#FFD400" visible="false" position="-1 1 0"></a-sphere>
+  <a-sphere id="b4" radius="0.75" color="#00FFFF" visible="false" position="-2 1 0"></a-sphere>
+  <a-sphere id="c4" radius="0.75" color="#FF8800" visible="false" position="-2 1 -1"></a-sphere>
+  <a-sphere id="d4" radius="0.75" color="#FF8800" visible="false" position="-2 1 1"></a-sphere>
+
+  <a-entity id="s4"  sound="src:url(assets/audio/audio_4.wav);  positional:false; loop:false;"></a-entity>
+  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s4c" sound="src:url(assets/audio/audio_4c.wav); positional:false; loop:false;"></a-entity>
+  <a-entity id="s4d" sound="src:url(assets/audio/audio_4d.wav); positional:false; loop:false;"></a-entity>
+
+  <a-entity id="leftCluster"
+    cluster-proximity="
+      soundA:#s4;
+      soundB:#s4b;
+      soundC:#s4c;
+      soundD:#s4d;
+      asphere:#a4;
+      bsphere:#b4;
+      csphere:#c4;
+      dsphere:#d4;
+      distance:0.75;">
+  </a-entity>
+
+</a-scene>
+
+</body>
+</html>
