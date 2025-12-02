@@ -26,31 +26,42 @@ AFRAME.registerComponent("proximity-trigger", {
     if (this.data.csphere) this.data.csphere.setAttribute("visible","false");
     if (this.data.dsphere) this.data.dsphere.setAttribute("visible","false");
 
-    const self=this;
+    const self = this;
 
+    // When A finishes → show B
     if (this.data.soundA) {
-      this.data.soundA.addEventListener("sound-ended",()=>{
-        if (self.data.bsphere) self.data.bsphere.setAttribute("visible","true");
+      this.data.soundA.addEventListener("sound-ended", () => {
+        if (self.data.bsphere)
+          self.data.bsphere.setAttribute("visible", "true");
       });
     }
 
+    // When B finishes → show C and D
     if (this.data.soundB) {
-      this.data.soundB.addEventListener("sound-ended",()=>{
-        if (self.data.bsphere) self.data.bsphere.setAttribute("visible","false");
-        if (self.data.csphere) self.data.csphere.setAttribute("visible","true");
-        if (self.data.dsphere) self.data.dsphere.setAttribute("visible","true");
+      this.data.soundB.addEventListener("sound-ended", () => {
+        if (self.data.bsphere)
+          self.data.bsphere.setAttribute("visible", "false");
+
+        if (self.data.csphere)
+          self.data.csphere.setAttribute("visible", "true");
+        if (self.data.dsphere)
+          self.data.dsphere.setAttribute("visible", "true");
       });
     }
 
+    // C ends
     if (this.data.soundC) {
-      this.data.soundC.addEventListener("sound-ended",()=>{
-        if (self.data.csphere) self.data.csphere.setAttribute("visible","false");
+      this.data.soundC.addEventListener("sound-ended", () => {
+        if (self.data.csphere)
+          self.data.csphere.setAttribute("visible", "false");
       });
     }
 
+    // D ends
     if (this.data.soundD) {
-      this.data.soundD.addEventListener("sound-ended",()=>{
-        if (self.data.dsphere) self.data.dsphere.setAttribute("visible","false");
+      this.data.soundD.addEventListener("sound-ended", () => {
+        if (self.data.dsphere)
+          self.data.dsphere.setAttribute("visible", "false");
       });
     }
   },
@@ -64,6 +75,7 @@ AFRAME.registerComponent("proximity-trigger", {
 
     const inside = dist < d.distance;
 
+    // ENTER ZONE -> play A
     if (inside && !this.insideZone) {
       this.insideZone = true;
 
@@ -76,15 +88,17 @@ AFRAME.registerComponent("proximity-trigger", {
       }
     }
 
+    // ENTER B zone
     if (d.bsphere && d.soundB && d.bsphere.getAttribute("visible")) {
       const bpos = d.bsphere.object3D.position;
       if (!this.Bplayed && cam.distanceTo(bpos) < d.distance) {
-        d.bsphere.setAttribute("visible","false");
+        d.bsphere.setAttribute("visible", "false");
         d.soundB.components.sound.playSound();
         this.Bplayed = true;
       }
     }
 
+    // ENTER C zone
     if (d.csphere && d.soundC && d.csphere.getAttribute("visible")) {
       const cpos = d.csphere.object3D.position;
       if (!this.Cplayed && cam.distanceTo(cpos) < d.distance) {
@@ -94,6 +108,7 @@ AFRAME.registerComponent("proximity-trigger", {
       }
     }
 
+    // ENTER D zone
     if (d.dsphere && d.soundD && d.dsphere.getAttribute("visible")) {
       const dpos = d.dsphere.object3D.position;
       if (!this.Dplayed && cam.distanceTo(dpos) < d.distance) {
@@ -103,10 +118,11 @@ AFRAME.registerComponent("proximity-trigger", {
       }
     }
 
+    // EXIT ZONE -> reset everything + ambience back
     if (!inside && this.insideZone) {
       this.insideZone = false;
 
-      [d.soundA, d.soundB, d.soundC, d.soundD].forEach(s=>{
+      [d.soundA, d.soundB, d.soundC, d.soundD].forEach((s) => {
         if (s?.components.sound) s.components.sound.stopSound();
       });
 
@@ -120,7 +136,8 @@ AFRAME.registerComponent("proximity-trigger", {
       if (d.csphere) d.csphere.setAttribute("visible","false");
       if (d.dsphere) d.dsphere.setAttribute("visible","false");
 
-      if (ambient && !ambient.isPlaying) ambient.playSound();
+      if (ambient && !ambient.isPlaying)
+        ambient.playSound();
     }
   }
 });
