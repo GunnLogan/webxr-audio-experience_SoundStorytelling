@@ -1,27 +1,36 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>WebXR Audio Experience</title>
 
     <!-- A-Frame 1.7.0 with cache-busting -->
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=6"></script>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=7"></script>
 
     <style>
-      /* Center full-screen START button */
-      #startButton {
+      /* Full-screen start overlay */
+      #startOverlay {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
         background: rgba(0, 0, 0, 0.85);
-        color: white;
-        font-size: 2rem;
-        font-family: sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
-        text-align: center;
-        z-index: 9999;
-        cursor: pointer;
+        z-index: 999999; /* Always on top */
+      }
+
+      /* Centered button */
+      #startButton {
+        padding: 20px 40px;
+        font-size: 2rem;
+        font-family: sans-serif;
+        background: white;
+        color: black;
+        border-radius: 10px;
+        border: none;
       }
     </style>
 
@@ -79,20 +88,22 @@
 
   <body>
 
-    <!-- Full-screen START button -->
-    <div id="startButton">START</div>
+    <!-- START overlay visible on all devices -->
+    <div id="startOverlay">
+      <button id="startButton">START</button>
+    </div>
 
     <a-scene
       renderer="colorManagement: true;"
       webxr="requiredFeatures: hit-test; optionalFeatures: local-floor;"
-      vr-mode-ui="enabled: true"
-      ar-mode-ui="enabled: true">
+      vr-mode-ui="enabled: false"
+      ar-mode-ui="enabled: false">
 
       <a-entity id="camera" camera look-controls></a-entity>
 
       <!-- Ambient audio -->
       <a-entity id="ambient"
-        sound="src: url(assets/audio/audio_Intro.wav?v=6); loop: true; positional: false;">
+        sound="src: url(assets/audio/audio_Intro.wav?v=7); loop: true; positional: false;">
       </a-entity>
 
       <!-- ======== CORNER 1 ======== -->
@@ -100,54 +111,54 @@
       <a-sphere id="b1" color="#00FFFF" radius="0.15" position="1 1 -1.2"></a-sphere>
       <a-entity id="corner1" position="1 1 -1"
         proximity-trigger="sound:#s1; nextsound:#s1b; distance:0.7; asphere:#a1; bsphere:#b1"></a-entity>
-      <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=6); positional: true;"></a-entity>
-      <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=7); positional: true;"></a-entity>
+      <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=7); positional: true;"></a-entity>
 
       <!-- ======== CORNER 2 ======== -->
       <a-sphere id="a2" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
       <a-sphere id="b2" color="#00FFFF" radius="0.15" position="-1 1 -1.2"></a-sphere>
       <a-entity id="corner2" position="-1 1 -1"
         proximity-trigger="sound:#s2; nextsound:#s2b; distance:0.7; asphere:#a2; bsphere:#b2"></a-entity>
-      <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=6); positional: true;"></a-entity>
-      <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=7); positional: true;"></a-entity>
+      <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=7); positional: true;"></a-entity>
 
       <!-- ======== CORNER 3 ======== -->
       <a-sphere id="a3" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
       <a-sphere id="b3" color="#00FFFF" radius="0.15" position="1 1 0.8"></a-sphere>
       <a-entity id="corner3" position="1 1 1"
         proximity-trigger="sound:#s3; nextsound:#s3b; distance:0.7; asphere:#a3; bsphere:#b3"></a-entity>
-      <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=6); positional: true;"></a-entity>
-      <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=7); positional: true;"></a-entity>
+      <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=7); positional: true;"></a-entity>
 
       <!-- ======== CORNER 4 ======== -->
       <a-sphere id="a4" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
       <a-sphere id="b4" color="#00FFFF" radius="0.15" position="-1 1 0.8"></a-sphere>
       <a-entity id="corner4" position="-1 1 1"
         proximity-trigger="sound:#s4; nextsound:#s4b; distance:0.7; asphere:#a4; bsphere:#b4"></a-entity>
-      <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=6); positional: true;"></a-entity>
-      <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=7); positional: true;"></a-entity>
+      <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=7); positional: true;"></a-entity>
 
     </a-scene>
 
     <!-- START logic -->
     <script>
       document.querySelector("#startButton").addEventListener("click", async () => {
-        const startButton = document.querySelector("#startButton");
+        const overlay = document.querySelector("#startOverlay");
         const ambient = document.querySelector("#ambient");
         const scene = document.querySelector("a-scene");
 
-        // Start ambient audio (allowed because user clicked)
+        // Start ambient audio (allowed because user interacted)
         ambient.components.sound.playSound();
 
-        // Try to enter AR (works on Android, ignored on iPhone)
+        // Attempt AR — works on Android, fails gracefully on iPhone
         try {
           await scene.enterAR();
         } catch (e) {
-          console.warn("AR not available (likely iPhone). Running audio-only mode.");
+          console.warn("AR not supported on this device. Running audio-only mode.");
         }
 
-        // Hide the button
-        startButton.style.display = "none";
+        // Hide overlay
+        overlay.style.display = "none";
       });
     </script>
 
