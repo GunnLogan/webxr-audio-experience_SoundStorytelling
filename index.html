@@ -23,7 +23,7 @@
           this.primaryPlayed = false;
           this.secondaryPlayed = false;
 
-          // PRIMARY sound ended → hide A sphere + start B
+          // PRIMARY sound ends → hide A sphere + play B
           if (this.data.sound) {
             this.data.sound.addEventListener("sound-ended", function () {
               if (self.data.asphere) self.data.asphere.setAttribute("visible", "false");
@@ -34,7 +34,7 @@
             });
           }
 
-          // SECONDARY sound ended → hide B sphere
+          // SECONDARY sound ends → hide B sphere
           if (this.data.nextsound) {
             this.data.nextsound.addEventListener("sound-ended", function () {
               if (self.data.bsphere) self.data.bsphere.setAttribute("visible", "false");
@@ -46,8 +46,8 @@
           if (this.primaryPlayed && this.secondaryPlayed) return;
 
           const cam = this.el.sceneEl.camera.el.object3D.position;
-          const obj = this.el.object3D.position;
-          const dist = cam.distanceTo(obj);
+          const pos = this.el.object3D.position;
+          const dist = cam.distanceTo(pos);
 
           if (dist < this.data.distance && !this.primaryPlayed) {
             const snd = this.data.sound.components.sound;
@@ -71,7 +71,7 @@
       <!-- CAMERA -->
       <a-entity id="camera" camera look-controls></a-entity>
 
-      <!-- AMBIENT AUDIO (manual start after AR enters) -->
+      <!-- AMBIENT AUDIO (started manually on AR start) -->
       <a-entity id="ambient"
         sound="src: url(assets/audio/audio_Intro.wav); loop: true; positional: false;">
       </a-entity>
@@ -122,7 +122,7 @@
 
     </a-scene>
 
-    <!-- START ambient audio ONLY when AR session starts -->
+    <!-- Start ambient audio ONLY when AR session begins -->
     <script>
       document.querySelector("a-scene").addEventListener("enter-vr", () => {
         const amb = document.querySelector("#ambient");
