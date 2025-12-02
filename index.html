@@ -45,18 +45,18 @@
   <a-entity line="start:-5 0 0; end:5 0 0; color:#555"></a-entity>
   <a-entity line="start:0 0 -5; end:0 0 5; color:#555"></a-entity>
 
+
   <!-- =============================================================== -->
-  <!--  FRONT = AUDIO 1  (A/B/C/D placed 2 meters apart)              -->
+  <!--  FRONT = AUDIO 1 (tight cluster)                                -->
   <!-- =============================================================== -->
 
-  <!-- A -->
+  <!-- Debug Spheres -->
   <a-sphere id="a1" radius="0.75" color="#FFD400" visible="false" position="0 1 -2"></a-sphere>
-  <!-- B -->
-  <a-sphere id="b1" radius="0.75" color="#00FFFF" visible="false" position="0 1 -4"></a-sphere>
-  <!-- C/D -->
-  <a-sphere id="c1" radius="0.75" color="#FF8800" visible="false" position="2 1 -4"></a-sphere>
-  <a-sphere id="d1" radius="0.75" color="#FF8800" visible="false" position="-2 1 -4"></a-sphere>
+  <a-sphere id="b1" radius="0.75" color="#00FFFF" visible="false" position="0 1 -2.8"></a-sphere>
+  <a-sphere id="c1" radius="0.75" color="#FF8800" visible="false" position="1 1 -2.8"></a-sphere>
+  <a-sphere id="d1" radius="0.75" color="#FF8800" visible="false" position="-1 1 -2.8"></a-sphere>
 
+  <!-- Trigger -->
   <a-entity id="frontTrigger" position="0 1 -2"
     proximity-trigger="
       soundA:#s1;
@@ -79,13 +79,13 @@
 
 
   <!-- =============================================================== -->
-  <!--  BACK = AUDIO 2                                                -->
+  <!--  BACK = AUDIO 2 (tight cluster)                                 -->
   <!-- =============================================================== -->
 
   <a-sphere id="a2" radius="0.75" color="#FFD400" visible="false" position="0 1 2"></a-sphere>
-  <a-sphere id="b2" radius="0.75" color="#00FFFF" visible="false" position="0 1 4"></a-sphere>
-  <a-sphere id="c2" radius="0.75" color="#FF8800" visible="false" position="-2 1 4"></a-sphere>
-  <a-sphere id="d2" radius="0.75" color="#FF8800" visible="false" position="2 1 4"></a-sphere>
+  <a-sphere id="b2" radius="0.75" color="#00FFFF" visible="false" position="0 1 2.8"></a-sphere>
+  <a-sphere id="c2" radius="0.75" color="#FF8800" visible="false" position="-1 1 2.8"></a-sphere>
+  <a-sphere id="d2" radius="0.75" color="#FF8800" visible="false" position="1 1 2.8"></a-sphere>
 
   <a-entity id="backTrigger" position="0 1 2"
     proximity-trigger="
@@ -108,13 +108,13 @@
 
 
   <!-- =============================================================== -->
-  <!--  RIGHT = AUDIO 3                                               -->
+  <!--  RIGHT = AUDIO 3 (tight cluster)                                -->
   <!-- =============================================================== -->
 
   <a-sphere id="a3" radius="0.75" color="#FFD400" visible="false" position="2 1 0"></a-sphere>
-  <a-sphere id="b3" radius="0.75" color="#00FFFF" visible="false" position="4 1 0"></a-sphere>
-  <a-sphere id="c3" radius="0.75" color="#FF8800" visible="false" position="4 1 2"></a-sphere>
-  <a-sphere id="d3" radius="0.75" color="#FF8800" visible="false" position="4 1 -2"></a-sphere>
+  <a-sphere id="b3" radius="0.75" color="#00FFFF" visible="false" position="2.8 1 0"></a-sphere>
+  <a-sphere id="c3" radius="0.75" color="#FF8800" visible="false" position="2.8 1 1"></a-sphere>
+  <a-sphere id="d3" radius="0.75" color="#FF8800" visible="false" position="2.8 1 -1"></a-sphere>
 
   <a-entity id="rightTrigger" position="2 1 0"
     proximity-trigger="
@@ -137,13 +137,13 @@
 
 
   <!-- =============================================================== -->
-  <!--  LEFT = AUDIO 4                                                -->
+  <!--  LEFT = AUDIO 4 (tight cluster)                                 -->
   <!-- =============================================================== -->
 
   <a-sphere id="a4" radius="0.75" color="#FFD400" visible="false" position="-2 1 0"></a-sphere>
-  <a-sphere id="b4" radius="0.75" color="#00FFFF" visible="false" position="-4 1 0"></a-sphere>
-  <a-sphere id="c4" radius="0.75" color="#FF8800" visible="false" position="-4 1 -2"></a-sphere>
-  <a-sphere id="d4" radius="0.75" color="#FF8800" visible="false" position="-4 1 2"></a-sphere>
+  <a-sphere id="b4" radius="0.75" color="#00FFFF" visible="false" position="-2.8 1 0"></a-sphere>
+  <a-sphere id="c4" radius="0.75" color="#FF8800" visible="false" position="-2.8 1 -1"></a-sphere>
+  <a-sphere id="d4" radius="0.75" color="#FF8800" visible="false" position="-2.8 1 1"></a-sphere>
 
   <a-entity id="leftTrigger" position="-2 1 0"
     proximity-trigger="
