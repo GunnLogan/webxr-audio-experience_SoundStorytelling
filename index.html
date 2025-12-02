@@ -5,11 +5,27 @@
     <title>WebXR Audio Experience</title>
 
     <!-- A-Frame 1.7.0 with cache-busting -->
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=5"></script>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=6"></script>
 
-    <!-- No aframe-extras (removed) -->
+    <style>
+      /* Center full-screen START button */
+      #startButton {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        font-size: 2rem;
+        font-family: sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        z-index: 9999;
+        cursor: pointer;
+      }
+    </style>
 
-    <!-- Proximity trigger component -->
+    <!-- Proximity Trigger -->
     <script>
       AFRAME.registerComponent("proximity-trigger", {
         schema: {
@@ -25,9 +41,8 @@
           this.primaryPlayed = false;
           this.secondaryPlayed = false;
 
-          // PRIMARY sound ends → hide A sphere + play B
           if (this.data.sound) {
-            this.data.sound.addEventListener("sound-ended", function () {
+            this.data.sound.addEventListener("sound-ended", () => {
               if (self.data.asphere) self.data.asphere.setAttribute("visible", "false");
               if (!self.secondaryPlayed && self.data.nextsound) {
                 self.data.nextsound.components.sound.playSound();
@@ -36,9 +51,8 @@
             });
           }
 
-          // SECONDARY sound ends → hide B sphere
           if (this.data.nextsound) {
-            this.data.nextsound.addEventListener("sound-ended", function () {
+            this.data.nextsound.addEventListener("sound-ended", () => {
               if (self.data.bsphere) self.data.bsphere.setAttribute("visible", "false");
             });
           }
@@ -46,7 +60,6 @@
 
         tick: function () {
           if (this.primaryPlayed && this.secondaryPlayed) return;
-
           const cam = this.el.sceneEl.camera.el.object3D.position;
           const pos = this.el.object3D.position;
           const dist = cam.distanceTo(pos);
@@ -61,74 +74,80 @@
         }
       });
     </script>
+
   </head>
 
   <body>
+
+    <!-- Full-screen START button -->
+    <div id="startButton">START</div>
+
     <a-scene
       renderer="colorManagement: true;"
       webxr="requiredFeatures: hit-test; optionalFeatures: local-floor;"
       vr-mode-ui="enabled: true"
       ar-mode-ui="enabled: true">
 
-      <!-- CAMERA -->
       <a-entity id="camera" camera look-controls></a-entity>
 
-      <!-- AMBIENT AUDIO (starts when AR session starts) -->
+      <!-- Ambient audio -->
       <a-entity id="ambient"
-        sound="src: url(assets/audio/audio_Intro.wav?v=5); loop: true; positional: false;">
+        sound="src: url(assets/audio/audio_Intro.wav?v=6); loop: true; positional: false;">
       </a-entity>
 
       <!-- ======== CORNER 1 ======== -->
-      <a-sphere id="a1" radius="0.15" color="#FFD400" position="1 1 -1"></a-sphere>
-      <a-sphere id="b1" radius="0.15" color="#00FFFF" position="1 1 -1.2"></a-sphere>
-
+      <a-sphere id="a1" color="#FFD400" radius="0.15" position="1 1 -1"></a-sphere>
+      <a-sphere id="b1" color="#00FFFF" radius="0.15" position="1 1 -1.2"></a-sphere>
       <a-entity id="corner1" position="1 1 -1"
-        proximity-trigger="sound:#s1; nextsound:#s1b; distance:0.7; asphere:#a1; bsphere:#b1">
-      </a-entity>
-
-      <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=5); positional: true;"></a-entity>
-      <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=5); positional: true;"></a-entity>
+        proximity-trigger="sound:#s1; nextsound:#s1b; distance:0.7; asphere:#a1; bsphere:#b1"></a-entity>
+      <a-entity id="s1"  sound="src: url(assets/audio/audio_1.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s1b" sound="src: url(assets/audio/audio_1b.wav?v=6); positional: true;"></a-entity>
 
       <!-- ======== CORNER 2 ======== -->
-      <a-sphere id="a2" radius="0.15" color="#FFD400" position="-1 1 -1"></a-sphere>
-      <a-sphere id="b2" radius="0.15" color="#00FFFF" position="-1 1 -1.2"></a-sphere>
-
+      <a-sphere id="a2" color="#FFD400" radius="0.15" position="-1 1 -1"></a-sphere>
+      <a-sphere id="b2" color="#00FFFF" radius="0.15" position="-1 1 -1.2"></a-sphere>
       <a-entity id="corner2" position="-1 1 -1"
-        proximity-trigger="sound:#s2; nextsound:#s2b; distance:0.7; asphere:#a2; bsphere:#b2">
-      </a-entity>
-
-      <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=5); positional: true;"></a-entity>
-      <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=5); positional: true;"></a-entity>
+        proximity-trigger="sound:#s2; nextsound:#s2b; distance:0.7; asphere:#a2; bsphere:#b2"></a-entity>
+      <a-entity id="s2"  sound="src: url(assets/audio/audio_2.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s2b" sound="src: url(assets/audio/audio_2b.wav?v=6); positional: true;"></a-entity>
 
       <!-- ======== CORNER 3 ======== -->
-      <a-sphere id="a3" radius="0.15" color="#FFD400" position="1 1 1"></a-sphere>
-      <a-sphere id="b3" radius="0.15" color="#00FFFF" position="1 1 0.8"></a-sphere>
-
+      <a-sphere id="a3" color="#FFD400" radius="0.15" position="1 1 1"></a-sphere>
+      <a-sphere id="b3" color="#00FFFF" radius="0.15" position="1 1 0.8"></a-sphere>
       <a-entity id="corner3" position="1 1 1"
-        proximity-trigger="sound:#s3; nextsound:#s3b; distance:0.7; asphere:#a3; bsphere:#b3">
-      </a-entity>
-
-      <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=5); positional: true;"></a-entity>
-      <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=5); positional: true;"></a-entity>
+        proximity-trigger="sound:#s3; nextsound:#s3b; distance:0.7; asphere:#a3; bsphere:#b3"></a-entity>
+      <a-entity id="s3"  sound="src: url(assets/audio/audio_3.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s3b" sound="src: url(assets/audio/audio_3b.wav?v=6); positional: true;"></a-entity>
 
       <!-- ======== CORNER 4 ======== -->
-      <a-sphere id="a4" radius="0.15" color="#FFD400" position="-1 1 1"></a-sphere>
-      <a-sphere id="b4" radius="0.15" color="#00FFFF" position="-1 1 0.8"></a-sphere>
-
+      <a-sphere id="a4" color="#FFD400" radius="0.15" position="-1 1 1"></a-sphere>
+      <a-sphere id="b4" color="#00FFFF" radius="0.15" position="-1 1 0.8"></a-sphere>
       <a-entity id="corner4" position="-1 1 1"
-        proximity-trigger="sound:#s4; nextsound:#s4b; distance:0.7; asphere:#a4; bsphere:#b4">
-      </a-entity>
-
-      <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=5); positional: true;"></a-entity>
-      <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=5); positional: true;"></a-entity>
+        proximity-trigger="sound:#s4; nextsound:#s4b; distance:0.7; asphere:#a4; bsphere:#b4"></a-entity>
+      <a-entity id="s4"  sound="src: url(assets/audio/audio_4.wav?v=6); positional: true;"></a-entity>
+      <a-entity id="s4b" sound="src: url(assets/audio/audio_4b.wav?v=6); positional: true;"></a-entity>
 
     </a-scene>
 
-    <!-- Auto-start ambient sound when AR session begins -->
+    <!-- START logic -->
     <script>
-      document.querySelector("a-scene").addEventListener("enter-vr", () => {
-        const amb = document.querySelector("#ambient");
-        if (amb && amb.components.sound) amb.components.sound.playSound();
+      document.querySelector("#startButton").addEventListener("click", async () => {
+        const startButton = document.querySelector("#startButton");
+        const ambient = document.querySelector("#ambient");
+        const scene = document.querySelector("a-scene");
+
+        // Start ambient audio (allowed because user clicked)
+        ambient.components.sound.playSound();
+
+        // Try to enter AR (works on Android, ignored on iPhone)
+        try {
+          await scene.enterAR();
+        } catch (e) {
+          console.warn("AR not available (likely iPhone). Running audio-only mode.");
+        }
+
+        // Hide the button
+        startButton.style.display = "none";
       });
     </script>
 
