@@ -2,7 +2,21 @@
  *  CLUSTER PROXIMITY CONTROLLER
  *  A → B → C&D progression
  *  A is one-shot per direction but reactivates when ANY other A is entered
+ *  All sounds are spatial mono using HRTF
  ***********************************************************/
+function makeSpatial(node) {
+  const ctx = AFRAME.audioContext;
+
+  const panner = ctx.createPanner();
+  panner.panningModel = "HRTF";
+  panner.distanceModel = "inverse";
+  panner.refDistance = 1;
+  panner.rolloffFactor = 1;
+
+  panner.connect(ctx.destination);
+  node.setNodeSource(panner);
+}
+
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
     soundA: { type: "selector" },
@@ -24,8 +38,6 @@ AFRAME.registerComponent("cluster-proximity", {
     this.cInside = false;
     this.dInside = false;
 
-    // Special A-trigger rule:
-    // Aused = whether A has been triggered since last directional switch
     this.Aused = false;
 
     this.bUnlocked = false;
@@ -34,13 +46,21 @@ AFRAME.registerComponent("cluster-proximity", {
 
     const d = this.data;
 
+    // Visibility rules
     if (d.asphere) d.asphere.setAttribute("visible", true);
     if (d.bsphere) d.bsphere.setAttribute("visible", false);
     if (d.csphere) d.csphere.setAttribute("visible", false);
     if (d.dsphere) d.dsphere.setAttribute("visible", false);
 
-    // Global reference to which A was triggered last
     if (!window._lastATrigger) window._lastATrigger = null;
+
+    // Spatialize all cluster sounds
+    [d.soundA, d.soundB, d.soundC, d.soundD].forEach((snd) => {
+      if (!snd || !snd.components.sound) return;
+      snd.components.sound.pool.children.forEach((sourceNode) => {
+        makeSpatial(sourceNode);
+      });
+    });
   },
 
   tick: function () {
@@ -50,7 +70,8 @@ AFRAME.registerComponent("cluster-proximity", {
     const camPos = sceneEl.camera.el.object3D.position;
     const d = this.data;
 
-    const getDist = (sphere) => sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
+    const getDist = (sphere) =>
+      sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
 
     const distA = getDist(d.asphere);
     const distB = getDist(d.bsphere);
@@ -67,23 +88,17 @@ AFRAME.registerComponent("cluster-proximity", {
       if (inA && !this.aInside) {
         const last = window._lastATrigger;
 
-        // PLAY if:
-        // - A has not been used yet OR
-        // - another A direction has been triggered after this one
         if (!this.Aused || last !== this.el.id) {
-
           d.soundA.components.sound.playSound();
 
           this.Aused = true;
           window._lastATrigger = this.el.id;
 
-          // Unlock B
           if (!this.bUnlocked) {
             this.bUnlocked = true;
             if (d.bsphere) d.bsphere.setAttribute("visible", true);
           }
 
-          // Reset Aused on ALL OTHER CLUSTERS
           const clusters = document.querySelectorAll("[cluster-proximity]");
           clusters.forEach((cl) => {
             if (cl.id !== this.el.id) {
@@ -97,7 +112,7 @@ AFRAME.registerComponent("cluster-proximity", {
     }
 
     /* ---------------------------
-       B TRIGGER (after A)
+       B TRIGGER
        --------------------------- */
     if (this.bUnlocked && d.bsphere && d.soundB?.components?.sound) {
       const inB = distB < d.distance;
@@ -109,13 +124,11 @@ AFRAME.registerComponent("cluster-proximity", {
           this.cUnlocked = true;
           if (d.csphere) d.csphere.setAttribute("visible", true);
         }
-
         if (!this.dUnlocked) {
           this.dUnlocked = true;
           if (d.dsphere) d.dsphere.setAttribute("visible", true);
         }
       }
-
       this.bInside = inB;
     }
 
@@ -149,20 +162,20 @@ AFRAME.registerComponent("cluster-proximity", {
 
 
 /***********************************************************
- *  AMBIENT PROXIMITY SYSTEM
+ *  AMBIENT PROXIMITY SYSTEM (spatial mono)
  *  - Half volume base (0.5)
- *  - 3D HRTF spatialisation
- *  - Low-pass filter increasing with distance
+ *  - HRTF spatialisation
+ *  - Low-pass filter with distance
  *  - Inner plateau (0–0.5m full clarity)
  *  - Smooth fade every 10 cm
- *  - Full silent beyond 4 meters
+ *  - Silent beyond 4 meters
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
     ambient: { type: "selector" },
     maxRadius: { default: 4 },
-    falloff:  { default: 0.05 },
-    plateau:  { default: 0.5 }
+    falloff: { default: 0.05 },
+    plateau: { default: 0.5 }
   },
 
   init: function () {
@@ -174,7 +187,7 @@ AFRAME.registerComponent("ambient-proximity", {
     const ctx = AFRAME.audioContext;
 
     this.gainNode = ctx.createGain();
-    this.gainNode.gain.setValueAtTime(0.5, ctx.currentTime); // half volume
+    this.gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
 
     this.filter = ctx.createBiquadFilter();
     this.filter.type = "lowpass";
@@ -190,8 +203,8 @@ AFRAME.registerComponent("ambient-proximity", {
     this.filter.connect(this.gainNode);
     this.gainNode.connect(ctx.destination);
 
-    ambientEl.components.sound.pool.children.forEach((sound) => {
-      sound.setNodeSource(this.panner);
+    ambientEl.components.sound.pool.children.forEach((sourceNode) => {
+      sourceNode.setNodeSource(this.panner);
     });
   },
 
@@ -233,7 +246,7 @@ AFRAME.registerComponent("ambient-proximity", {
     const cutoffMax = 20000;
 
     const t = Math.min(1, dist / this.data.maxRadius);
-    const cutoff = cutoffMax - (t * (cutoffMax - cutoffMin));
+    const cutoff = cutoffMax - t * (cutoffMax - cutoffMin);
 
     this.filter.frequency.value = cutoff;
   }
