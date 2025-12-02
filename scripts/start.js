@@ -1,10 +1,13 @@
-function isIOS(){ return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
+function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
 
-document.addEventListener("DOMContentLoaded", () => {
+window.onload = () => {
 
   const startButton = document.querySelector("#startButton");
+
   if (!startButton) {
-    console.error("START button not found");
+    console.error("ERROR: #startButton not found in DOM");
     return;
   }
 
@@ -16,7 +19,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     overlay.style.display = "none";
 
-    // iPhone = audio mode only
+    // -------------------------------
+    // iPHONE MODE (Audio-Only)
+    // -------------------------------
     if (isIOS()) {
       intro.components.sound.playSound();
       intro.addEventListener("sound-ended", () =>
@@ -25,24 +30,18 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Android AR
+    // -------------------------------
+    // ANDROID / DESKTOP AR MODE
+    // -------------------------------
     scene.setAttribute(
       "webxr",
       "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
     );
 
     try {
-      await scene.enterAR();
+      await scene.enterAR();  
     } catch (e) {
-      console.warn("AR failed", e);
+      console.warn("AR entry failed:", e);
     }
 
-    await new Promise((r) => setTimeout(r, 300));
-
-    intro.components.sound.playSound();
-    intro.addEventListener("sound-ended", () =>
-      handleIntroEnded(intro, ambient)
-    );
-  });
-
-});
+    // Delay for WebXR act
