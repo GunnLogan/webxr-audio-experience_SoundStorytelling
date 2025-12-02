@@ -3,8 +3,12 @@ function isIOS() {
 }
 
 window.onload = () => {
-
   const startButton = document.querySelector("#startButton");
+  const overlay = document.querySelector("#startOverlay");
+  const scene = document.querySelector("a-scene");
+  const intro = document.querySelector("#intro");
+
+  let started = false;
 
   if (!startButton) {
     console.error("ERROR: #startButton not found in DOM");
@@ -12,51 +16,51 @@ window.onload = () => {
   }
 
   startButton.addEventListener("click", async () => {
+    if (started) return;  // ensure intro runs only once
+    started = true;
 
-    const overlay = document.querySelector("#startOverlay");
-    const intro = document.querySelector("#intro");
-    const ambient = document.querySelector("#ambient");
-    const scene = document.querySelector("a-scene");
+    if (overlay) {
+      overlay.style.display = "none";
+    }
 
-    overlay.style.display = "none";
-
-    // -------------------------------------
-    // iPHONE MODE (Audio Only)
-    // -------------------------------------
-    if (isIOS()) {
-
-      intro.components.sound.playSound();
-
-      intro.addEventListener("sound-ended", () => {
-        handleIntroEnded(intro, ambient);
-      });
-
+    if (!intro || !scene) {
+      console.error("ERROR: intro or scene not found in DOM");
       return;
     }
 
-    // -------------------------------------
-    // ANDROID / DESKTOP AR MODE
-    // -------------------------------------
+    // iOS: audio-only mode
+    if (isIOS()) {
+      if (intro.components && intro.components.sound) {
+        intro.components.sound.playSound();
+      } else {
+        console.warn("Intro sound component not ready yet.");
+      }
+      return;
+    }
+
+    // Android / Desktop: AR mode
     scene.setAttribute(
       "webxr",
       "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
     );
 
     try {
-      await scene.enterAR();
+      if (scene.enterAR) {
+        await scene.enterAR();
+      } else {
+        console.warn("enterAR() not available on this browser.");
+      }
     } catch (e) {
       console.warn("AR entry failed:", e);
     }
 
-    // Wait for AR session before playing intro
+    // Small delay to let WebXR session stabilize, then play intro once
     setTimeout(() => {
-      intro.components.sound.playSound();
-
-      intro.addEventListener("sound-ended", () => {
-        handleIntroEnded(intro, ambient);
-      });
+      if (intro.components && intro.components.sound) {
+        intro.components.sound.playSound();
+      } else {
+        console.warn("Intro sound component not ready yet (after AR).");
+      }
     }, 500);
-
-  }); // end click handler
-
-}; // end window.onload
+  });
+};
