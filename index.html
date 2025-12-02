@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR Audio Experience</title>
+
+    <!-- A-Frame + WebXR hit-test -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+
+    <!-- Simple trigger component -->
+    <script>
+      AFRAME.registerComponent("proximity-trigger", {
+        schema: {sound:{type:"selector"}, distance:{default:1.0}},
+        tick: function(){
+          const cam = this.el.sceneEl.camera.el.object3D.position;
+          const pos = this.el.object3D.position;
+          const dist = cam.distanceTo(pos);
+          if(dist < this.data.distance){
+            if(this.data.sound && !this.data.sound.components.sound.isPlaying){
+              this.data.sound.components.sound.playSound();
+            }
+          }
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <a-scene
+      renderer="colorManagement: true;"
+      xrweb="allowedDevices: any;"
+      webxr="optionalFeatures: hit-test,local-floor;"
+      embedded
+      vr-mode-ui="enabled: false"
+      ar-mode-ui="enabled: true">
+
+      <!-- CAMERA -->
+      <a-entity id="camera" camera look-controls></a-entity>
+
+      <!-- AMBIENT AUDIO (plays on load) -->
+      <a-entity id="ambient"
+                sound="src: url(assets/audio/audio_Intro.mp3);
+                       autoplay: true;
+                       loop: true;
+                       positional: false;">
+      </a-entity>
+
+      <!-- CORNER TRIGGERS -->
+      <a-entity id="corner1" position="1 0 -1"
+        proximity-trigger="sound:#s1; distance:0.7"></a-entity>
+
+      <a-entity id="corner2" position="-1 0 -1"
+        proximity-trigger="sound:#s2; distance:0.7"></a-entity>
+
+      <a-entity id="corner3" position="1 0 1"
+        proximity-trigger="sound:#s3; distance:0.7"></a-entity>
+
+      <a-entity id="corner4" position="-1 0 1"
+        proximity-trigger="sound:#s4; distance:0.7"></a-entity>
+
+      <!-- AUDIO SOURCES -->
+      <a-entity id="s1"
+        sound="src: url(assets/audio/audio_1.mp3); positional: true;"></a-entity>
+
+      <a-entity id="s2"
+        sound="src: url(assets/audio/audio_2.mp3); positional: true;"></a-entity>
+
+      <a-entity id="s3"
+        sound="src: url(assets/audio/audio_3.mp3); positional: true;"></a-entity>
+
+      <a-entity id="s4"
+        sound="src: url(assets/audio/audio_4.mp3); positional: true;"></a-entity>
+
+    </a-scene>
+  </body>
+</html>
