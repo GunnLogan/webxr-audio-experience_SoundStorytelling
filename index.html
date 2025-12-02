@@ -2,138 +2,17 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Grupp 7</title>
+  <title>WebXR Audio Experience</title>
 
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=25"></script>
+  <link rel="stylesheet" href="styles/main.css">
 
-  <style>
-    #startOverlay {
-      position: fixed; top:0; left:0; width:100vw; height:100vh;
-      background: rgba(0,0,0,0.85);
-      display:flex; justify-content:center; align-items:center;
-      z-index:999999;
-    }
-    #startButtons {
-      display:flex; flex-direction:column; gap:16px; align-items:center;
-    }
-    #startButton, #debugButton {
-      padding:16px 32px; font-size:1.4rem;
-      border:none; border-radius:12px; min-width:220px;
-    }
-    #debugButton { background:#ddd; }
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
-    /* Hint overlay for desktop debug */
-    #lookHint {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 10px 18px;
-      background: rgba(0,0,0,0.7);
-      color: #fff;
-      font-size: 0.9rem;
-      border-radius: 999px;
-      z-index: 999998;
-      display: none;
-    }
-
-    .a-enter-vr, .a-enter-ar { display:none !important; }
-  </style>
-
-  <!-- PROXIMITY COMPONENT -->
-  <script>
-    AFRAME.registerComponent("proximity-trigger", {
-      schema: {
-        sound:{type:"selector"},
-        nextsound:{type:"selector"},
-        distance:{default:1.5},
-        asphere:{type:"selector"},
-        bsphere:{type:"selector"},
-        ambient:{type:"selector"}
-      },
-
-      init: function () {
-        this.primaryPlayed = false;
-        this.secondaryPlayed = false;
-        this.insideZone = false;
-
-        if (this.data.bsphere)
-          this.data.bsphere.setAttribute("visible","false");
-
-        const self=this;
-        const A=this.data.sound?.components.sound;
-        const B=this.data.nextsound?.components.sound;
-
-        // A ends -> show and play B
-        if (A) {
-          this.data.sound.addEventListener("sound-ended",()=>{
-            if (self.data.bsphere)
-              self.data.bsphere.setAttribute("visible","true");
-
-            if (!self.secondaryPlayed && B){
-              B.playSound();
-              self.secondaryPlayed=true;
-            }
-          });
-        }
-
-        // B ends → hide B sphere
-        if (B) {
-          this.data.nextsound.addEventListener("sound-ended",()=>{
-            if (self.data.bsphere)
-              self.data.bsphere.setAttribute("visible","false");
-          });
-        }
-      },
-
-      tick: function () {
-        const cam=this.el.sceneEl.camera.el.object3D.position;
-        const pos=this.el.object3D.position;
-        const dist=cam.distanceTo(pos);
-        const ambient=this.data.ambient?.components.sound;
-
-        const inside = dist < this.data.distance;
-
-        // ENTER zone
-        if (inside && !this.insideZone) {
-          this.insideZone = true;
-
-          // Hide debug spheres immediately
-          if (this.data.asphere)
-            this.data.asphere.setAttribute("visible","false");
-          if (this.data.bsphere)
-            this.data.bsphere.setAttribute("visible","false");
-
-          // pause ambience
-          if (ambient && ambient.isPlaying)
-            ambient.pauseSound();
-
-          // Play A once
-          if (!this.primaryPlayed && this.data.sound) {
-            const A=this.data.sound.components.sound;
-            if (!A.isPlaying) A.playSound();
-            this.primaryPlayed=true;
-          }
-        }
-
-        // EXIT zone
-        if (!inside && this.insideZone) {
-          this.insideZone = false;
-
-          // stop A + B if leaving early
-          if (this.data.sound?.components.sound)
-            this.data.sound.components.sound.stopSound();
-
-          if (this.data.nextsound?.components.sound)
-            this.data.nextsound.components.sound.stopSound();
-
-          // resume ambience
-          if (ambient && !ambient.isPlaying)
-            ambient.playSound();
-        }
-      }
-    });
-  </script>
+  <!-- Scripts -->
+  <script src="scripts/proximity.js"></script>
+  <script src="scripts/audio.js"></script>
+  <script src="scripts/start.js"></script>
+  <script src="scripts/desktop-debug.js"></script>
 </head>
 
 <body>
@@ -146,12 +25,9 @@
   </div>
 </div>
 
-<!-- DESKTOP LOOK HINT -->
-<div id="lookHint">CLICK TO LOOK AROUND (ESC to exit)</div>
-
 <a-scene renderer="colorManagement:true" vr-mode-ui="enabled:false" ar-mode-ui="enabled:false">
 
-  <!-- CAMERA IN ABSOLUTE CENTER -->
+  <!-- CAMERA -->
   <a-entity id="camera"
     camera
     wasd-controls="enabled:false"
@@ -160,192 +36,135 @@
   </a-entity>
 
   <!-- INTRO -->
-  <a-entity id="intro"
-    sound="src:url(assets/audio/audio_intro.wav?v=25); autoplay:false; positional:false; loop:false; volume:1;">
-  </a-entity>
+  <a-entity id="intro" sound="src:url(assets/audio/audio_intro.wav); autoplay:false; positional:false; loop:false; volume:1;"></a-entity>
 
   <!-- AMBIENCE -->
-  <a-entity id="ambient"
-    sound="src:url(assets/audio/audio_ambience.wav?v=25); autoplay:false; positional:false; loop:true; volume:0;">
+  <a-entity id="ambient" sound="src:url(assets/audio/audio_ambience.wav); autoplay:false; positional:false; loop:true; volume:0;"></a-entity>
+
+  <!-- SIMPLE GRID -->
+  <a-entity line="start:-5 0 0; end:5 0 0; color:#555"></a-entity>
+  <a-entity line="start:0 0 -5; end:0 0 5; color:#555"></a-entity>
+
+  <!-- =============================================================== -->
+  <!--  FRONT = AUDIO 1  (A/B/C/D placed 2 meters apart)              -->
+  <!-- =============================================================== -->
+
+  <!-- A -->
+  <a-sphere id="a1" radius="0.75" color="#FFD400" visible="false" position="0 1 -2"></a-sphere>
+  <!-- B -->
+  <a-sphere id="b1" radius="0.75" color="#00FFFF" visible="false" position="0 1 -4"></a-sphere>
+  <!-- C/D -->
+  <a-sphere id="c1" radius="0.75" color="#FF8800" visible="false" position="2 1 -4"></a-sphere>
+  <a-sphere id="d1" radius="0.75" color="#FF8800" visible="false" position="-2 1 -4"></a-sphere>
+
+  <a-entity id="frontTrigger" position="0 1 -2"
+    proximity-trigger="
+      soundA:#s1;
+      soundB:#s1b;
+      soundC:#s1c;
+      soundD:#s1d;
+      asphere:#a1;
+      bsphere:#b1;
+      csphere:#c1;
+      dsphere:#d1;
+      ambient:#ambient;
+      distance:1.5;">
   </a-entity>
 
-  <!-- MINIMAL CROSSHAIR GRID (Y=0 plane) -->
-  <!-- X axis lines -->
-  <a-entity line="start:-5 0 0; end:5 0 0; color:#555"></a-entity>
-  <!-- Z axis lines -->
-  <a-entity line="start:0 0 -5; end:0 0 5; color:#555"></a-entity>
-  <!-- Short ticks on axes -->
-  <a-entity line="start:-5 0 -0.1; end:-5 0 0.1; color:#555"></a-entity>
-  <a-entity line="start:5 0 -0.1; end:5 0 0.1; color:#555"></a-entity>
-  <a-entity line="start:-0.1 0 -5; end:0.1 0 -5; color:#555"></a-entity>
-  <a-entity line="start:-0.1 0 5; end:0.1 0 5; color:#555"></a-entity>
-
-  <!-- === FINAL DEEP CORNER POSITIONS === -->
-  <!-- A = (±2, ±2)  radius=0.75 -->
-  <!-- B = (±3.75, ±3.75) radius=0.75 -->
-  <!-- TRIGGERS placed EXACTLY at A positions -->
-
-  <!-- CORNER 1 -->
-  <a-sphere id="a1" class="asphere" visible="false"
-    color="#FFD400" radius="0.75" position="2 1 -2"></a-sphere>
-
-  <a-sphere id="b1" visible="false"
-    color="#00FFFF" radius="0.75" position="3.75 1 -3.75"></a-sphere>
-
-  <a-entity id="corner1" position="2 1 -2"
-    proximity-trigger="sound:#s1; nextsound:#s1b; distance:1.5;
-                       asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
-
-  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav?v=25); positional:true"></a-entity>
-  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav?v=25); positional:true"></a-entity>
+  <!-- Audio -->
+  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav); positional:false"></a-entity>
+  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav); positional:false"></a-entity>
+  <a-entity id="s1c" sound="src:url(assets/audio/audio_1c.wav); positional:false"></a-entity>
+  <a-entity id="s1d" sound="src:url(assets/audio/audio_1d.wav); positional:false"></a-entity>
 
 
-  <!-- CORNER 2 -->
-  <a-sphere id="a2" class="asphere" visible="false"
-    color="#FFD400" radius="0.75" position="-2 1 -2"></a-sphere>
+  <!-- =============================================================== -->
+  <!--  BACK = AUDIO 2                                                -->
+  <!-- =============================================================== -->
 
-  <a-sphere id="b2" visible="false"
-    color="#00FFFF" radius="0.75" position="-3.75 1 -3.75"></a-sphere>
+  <a-sphere id="a2" radius="0.75" color="#FFD400" visible="false" position="0 1 2"></a-sphere>
+  <a-sphere id="b2" radius="0.75" color="#00FFFF" visible="false" position="0 1 4"></a-sphere>
+  <a-sphere id="c2" radius="0.75" color="#FF8800" visible="false" position="-2 1 4"></a-sphere>
+  <a-sphere id="d2" radius="0.75" color="#FF8800" visible="false" position="2 1 4"></a-sphere>
 
-  <a-entity id="corner2" position="-2 1 -2"
-    proximity-trigger="sound:#s2; nextsound:#s2b; distance:1.5;
-                       asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
+  <a-entity id="backTrigger" position="0 1 2"
+    proximity-trigger="
+      soundA:#s2;
+      soundB:#s2b;
+      soundC:#s2c;
+      soundD:#s2d;
+      asphere:#a2;
+      bsphere:#b2;
+      csphere:#c2;
+      dsphere:#d2;
+      ambient:#ambient;
+      distance:1.5;">
+  </a-entity>
 
-  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav?v=25); positional:true"></a-entity>
-  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav?v=25); positional:true"></a-entity>
-
-
-  <!-- CORNER 3 -->
-  <a-sphere id="a3" class="asphere" visible="false"
-    color="#FFD400" radius="0.75" position="2 1 2"></a-sphere>
-
-  <a-sphere id="b3" visible="false"
-    color="#00FFFF" radius="0.75" position="3.75 1 3.75"></a-sphere>
-
-  <a-entity id="corner3" position="2 1 2"
-    proximity-trigger="sound:#s3; nextsound:#s3b; distance:1.5;
-                       asphere:#a3; bsphere:#b3; ambient:#ambient"></a-entity>
-
-  <a-entity id="s3" sound="src:url(assets/audio/audio_3.wav?v=25); positional:true"></a-entity>
-  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav?v=25); positional:true"></a-entity>
+  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav); positional:false"></a-entity>
+  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav); positional:false"></a-entity>
+  <a-entity id="s2c" sound="src:url(assets/audio/audio_2c.wav); positional:false"></a-entity>
+  <a-entity id="s2d" sound="src:url(assets/audio/audio_2d.wav); positional:false"></a-entity>
 
 
-  <!-- CORNER 4 -->
-  <a-sphere id="a4" class="asphere" visible="false"
-    color="#FFD400" radius="0.75" position="-2 1 2"></a-sphere>
+  <!-- =============================================================== -->
+  <!--  RIGHT = AUDIO 3                                               -->
+  <!-- =============================================================== -->
 
-  <a-sphere id="b4" visible="false"
-    color="#00FFFF" radius="0.75" position="-3.75 1 3.75"></a-sphere>
+  <a-sphere id="a3" radius="0.75" color="#FFD400" visible="false" position="2 1 0"></a-sphere>
+  <a-sphere id="b3" radius="0.75" color="#00FFFF" visible="false" position="4 1 0"></a-sphere>
+  <a-sphere id="c3" radius="0.75" color="#FF8800" visible="false" position="4 1 2"></a-sphere>
+  <a-sphere id="d3" radius="0.75" color="#FF8800" visible="false" position="4 1 -2"></a-sphere>
 
-  <a-entity id="corner4" position="-2 1 2"
-    proximity-trigger="sound:#s4; nextsound:#s4b; distance:1.5;
-                       asphere:#a4; bsphere:#b4; ambient:#ambient"></a-entity>
+  <a-entity id="rightTrigger" position="2 1 0"
+    proximity-trigger="
+      soundA:#s3;
+      soundB:#s3b;
+      soundC:#s3c;
+      soundD:#s3d;
+      asphere:#a3;
+      bsphere:#b3;
+      csphere:#c3;
+      dsphere:#d3;
+      ambient:#ambient;
+      distance:1.5;">
+  </a-entity>
 
-  <a-entity id="s4" sound="src:url(assets/audio/audio_4.wav?v=25); positional:true"></a-entity>
-  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav?v=25); positional:true"></a-entity>
+  <a-entity id="s3" sound="src:url(assets/audio/audio_3.wav); positional:false"></a-entity>
+  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav); positional:false"></a-entity>
+  <a-entity id="s3c" sound="src:url(assets/audio/audio_3c.wav); positional:false"></a-entity>
+  <a-entity id="s3d" sound="src:url(assets/audio/audio_3d.wav); positional:false"></a-entity>
+
+
+  <!-- =============================================================== -->
+  <!--  LEFT = AUDIO 4                                                -->
+  <!-- =============================================================== -->
+
+  <a-sphere id="a4" radius="0.75" color="#FFD400" visible="false" position="-2 1 0"></a-sphere>
+  <a-sphere id="b4" radius="0.75" color="#00FFFF" visible="false" position="-4 1 0"></a-sphere>
+  <a-sphere id="c4" radius="0.75" color="#FF8800" visible="false" position="-4 1 -2"></a-sphere>
+  <a-sphere id="d4" radius="0.75" color="#FF8800" visible="false" position="-4 1 2"></a-sphere>
+
+  <a-entity id="leftTrigger" position="-2 1 0"
+    proximity-trigger="
+      soundA:#s4;
+      soundB:#s4b;
+      soundC:#s4c;
+      soundD:#s4d;
+      asphere:#a4;
+      bsphere:#b4;
+      csphere:#c4;
+      dsphere:#d4;
+      ambient:#ambient;
+      distance:1.5;">
+  </a-entity>
+
+  <a-entity id="s4" sound="src:url(assets/audio/audio_4.wav); positional:false"></a-entity>
+  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav); positional:false"></a-entity>
+  <a-entity id="s4c" sound="src:url(assets/audio/audio_4c.wav); positional:false"></a-entity>
+  <a-entity id="s4d" sound="src:url(assets/audio/audio_4d.wav); positional:false"></a-entity>
 
 </a-scene>
-
-<script>
-  function isIOS(){ return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
-
-  function crossfade(intro, amb, fadeTime=2000){
-    let start=null;
-    function step(ts){
-      if(!start) start=ts;
-      let p=(ts-start)/fadeTime;
-      if(p>1)p=1;
-
-      intro.setAttribute("sound","volume",1-p);
-      amb.setAttribute("sound","volume",p);
-
-      if(p<1) requestAnimationFrame(step);
-      else intro.components.sound.stopSound();
-    }
-    requestAnimationFrame(step);
-  }
-
-  function handleIntroEnded(intro, amb){
-    document.querySelectorAll(".asphere").forEach(a=>a.setAttribute("visible","true"));
-    amb.components.sound.playSound();
-    crossfade(intro, amb);
-  }
-
-  // --- DESKTOP POINTER LOCK SETUP ---
-  function enableDesktopPointerLock() {
-    const canvas = document.querySelector("canvas");
-    const camera = document.querySelector("#camera");
-    const lookHint = document.querySelector("#lookHint");
-
-    if (!canvas) return;
-
-    lookHint.style.display = "block";
-
-    // Click on canvas → request pointer lock
-    canvas.addEventListener("click", () => {
-      canvas.requestPointerLock();
-    });
-
-    // Pointer lock change → toggle look-controls + hint
-    document.addEventListener("pointerlockchange", () => {
-      const locked = document.pointerLockElement === canvas;
-
-      if (locked) {
-        camera.setAttribute("look-controls","enabled:true; pointerLockEnabled:false");
-        lookHint.style.display = "none";
-      } else {
-        // When pointer lock is exited (ESC), show hint again
-        camera.setAttribute("look-controls","enabled:false; pointerLockEnabled:false");
-        lookHint.style.display = "block";
-      }
-    });
-  }
-
-  // START BUTTON
-  document.querySelector("#startButton").addEventListener("click", async()=>{
-    const overlay=document.querySelector("#startOverlay");
-    const intro=document.querySelector("#intro");
-    const amb=document.querySelector("#ambient");
-    const scene=document.querySelector("a-scene");
-
-    overlay.style.display="none";
-
-    if(isIOS()){
-      intro.components.sound.playSound();
-      intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
-      return;
-    }
-
-    scene.setAttribute("webxr","optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;");
-
-    try{ await scene.enterAR(); }catch(e){ console.warn("AR failed",e); }
-    await new Promise(r=>setTimeout(r,300));
-
-    intro.components.sound.playSound();
-    intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
-  });
-
-  // DESKTOP DEBUG BUTTON
-  document.querySelector("#debugButton").addEventListener("click",()=>{
-    const overlay=document.querySelector("#startOverlay");
-    const intro=document.querySelector("#intro");
-    const amb=document.querySelector("#ambient");
-    const camera=document.querySelector("#camera");
-
-    overlay.style.display="none";
-
-    // Enable WASD; look-controls will be toggled by pointer lock handler
-    camera.setAttribute("wasd-controls","enabled:true");
-    camera.setAttribute("look-controls","enabled:false; pointerLockEnabled:false");
-    camera.setAttribute("position","0 1.6 0");
-
-    // Setup pointer lock & hint after scene is ready
-    setTimeout(enableDesktopPointerLock, 300);
-
-    intro.components.sound.playSound();
-    intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
-  });
-</script>
 
 </body>
 </html>
