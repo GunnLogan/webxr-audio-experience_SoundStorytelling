@@ -21,6 +21,8 @@ async function makeSpatial(node) {
   panner.refDistance = 1;
   panner.rolloffFactor = 1;
 
+  node.panner = panner;  // store for positional updates
+
   panner.connect(ctx.destination);
   node.setNodeSource(panner);
 }
@@ -31,6 +33,26 @@ async function makeSpatial(node) {
 function setSphereOpacity(sphere, opacity) {
   if (!sphere) return;
   sphere.setAttribute("material", "transparent:true; opacity:" + opacity);
+}
+
+/***********************************************************
+ *  Utility: Update panner position every frame
+ ***********************************************************/
+function updateSpatialPosition(soundEntity) {
+  if (!soundEntity?.components?.sound) return;
+
+  const pool = soundEntity.components.sound.pool?.children;
+  if (!pool) return;
+
+  const pos = soundEntity.object3D.position;
+
+  pool.forEach((node) => {
+    if (node.panner) {
+      node.panner.positionX.value = pos.x;
+      node.panner.positionY.value = pos.y;
+      node.panner.positionZ.value = pos.z;
+    }
+  });
 }
 
 /***********************************************************
@@ -64,7 +86,7 @@ AFRAME.registerComponent("cluster-proximity", {
 
     const d = this.data;
 
-    // Initial visibility layout
+    // Initial visibility
     if (d.asphere) { d.asphere.setAttribute("visible", true); setSphereOpacity(d.asphere, 1.0); }
     if (d.bsphere) d.bsphere.setAttribute("visible", false);
     if (d.csphere) d.csphere.setAttribute("visible", false);
@@ -72,7 +94,7 @@ AFRAME.registerComponent("cluster-proximity", {
 
     if (!window._lastATrigger) window._lastATrigger = null;
 
-    // Spatialize all cluster sounds
+    // Spatialize cluster sounds
     [d.soundA, d.soundB, d.soundC, d.soundD].forEach((snd) => {
       if (!snd || !snd.components.sound) return;
       snd.components.sound.pool.children.forEach(async (node) => {
@@ -88,6 +110,12 @@ AFRAME.registerComponent("cluster-proximity", {
     const camPos = scene.camera.el.object3D.position;
     const d = this.data;
 
+    // --- Update sound positions each frame (NEW!) ---
+    updateSpatialPosition(d.soundA);
+    updateSpatialPosition(d.soundB);
+    updateSpatialPosition(d.soundC);
+    updateSpatialPosition(d.soundD);
+
     const dist = (sphere) =>
       sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
 
@@ -97,7 +125,7 @@ AFRAME.registerComponent("cluster-proximity", {
     const distD = dist(d.dsphere);
 
     /* ============================================================
-       A → triggers, hides, activates B
+       A TRIGGER → enable B
     ============================================================ */
     if (d.asphere && d.soundA?.components?.sound) {
       const inA = distA < d.distance;
@@ -106,7 +134,6 @@ AFRAME.registerComponent("cluster-proximity", {
         const last = window._lastATrigger;
 
         if (!this.Aused || last !== this.el.id) {
-
           d.soundA.components.sound.playSound();
 
           this.Aused = true;
@@ -118,12 +145,12 @@ AFRAME.registerComponent("cluster-proximity", {
             if (d.asphere) d.asphere.setAttribute("visible", false);
           }, d.soundA.components.sound.duration * 1000);
 
-          // --- Unlock B
+          // Unlock B
           this.bUnlocked = true;
           d.bsphere.setAttribute("visible", true);
           setSphereOpacity(d.bsphere, 1.0);
 
-          // Reset A-usage for other clusters
+          // Reset A on other clusters
           const clusters = document.querySelectorAll("[cluster-proximity]");
           clusters.forEach((cl) => {
             if (cl.id !== this.el.id) {
@@ -137,40 +164,35 @@ AFRAME.registerComponent("cluster-proximity", {
     }
 
     /* ============================================================
-       B → triggers, hides, activates C & D
+       B TRIGGER → enable C and D
     ============================================================ */
     if (this.bUnlocked && d.bsphere && d.soundB?.components?.sound) {
       const inB = distB < d.distance;
 
       if (inB && !this.bInside) {
-
         d.soundB.components.sound.playSound();
 
         setSphereOpacity(d.bsphere, 0.25);
 
         setTimeout(() => {
-          if (d.bsphere) d.bsphere.setAttribute("visible", false);
+          d.bsphere && d.bsphere.setAttribute("visible", false);
         }, d.soundB.components.sound.duration * 1000);
 
-        // --- Unlock C & D
-        if (!this.cUnlocked) {
-          this.cUnlocked = true;
-          d.csphere.setAttribute("visible", true);
-          setSphereOpacity(d.csphere, 1.0);
-        }
+        // Unlock C & D
+        this.cUnlocked = true;
+        d.csphere.setAttribute("visible", true);
+        setSphereOpacity(d.csphere, 1.0);
 
-        if (!this.dUnlocked) {
-          this.dUnlocked = true;
-          d.dsphere.setAttribute("visible", true);
-          setSphereOpacity(d.dsphere, 1.0);
-        }
+        this.dUnlocked = true;
+        d.dsphere.setAttribute("visible", true);
+        setSphereOpacity(d.dsphere, 1.0);
       }
 
       this.bInside = inB;
     }
 
     /* ============================================================
-       C → triggers and hides
+       C TRIGGER
     ============================================================ */
     if (this.cUnlocked && d.csphere && d.soundC?.components?.sound) {
       const inC = distC < d.distance;
@@ -188,7 +210,7 @@ AFRAME.registerComponent("cluster-proximity", {
     }
 
     /* ============================================================
-       D → triggers and hides
+       D TRIGGER
     ============================================================ */
     if (this.dUnlocked && d.dsphere && d.soundD?.components?.sound) {
       const inD = distD < d.distance;
@@ -229,7 +251,7 @@ AFRAME.registerComponent("ambient-proximity", {
     const ctx = await waitForAudioContext();
     if (!ctx) return;
 
-    // Signal chain
+    // audio graph
     this.gainNode = ctx.createGain();
     this.gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
 
@@ -247,7 +269,7 @@ AFRAME.registerComponent("ambient-proximity", {
     this.filter.connect(this.gainNode);
     this.gainNode.connect(ctx.destination);
 
-    // Wait for pool to exist
+    // Wait for pool
     let tries = 0;
     while (
       (!ambientEl.components.sound?.pool?.children ||
@@ -263,6 +285,7 @@ AFRAME.registerComponent("ambient-proximity", {
       return;
     }
 
+    // apply panner to pool nodes
     ambientEl.components.sound.pool.children.forEach((n) => {
       n.setNodeSource(this.panner);
     });
@@ -294,20 +317,20 @@ AFRAME.registerComponent("ambient-proximity", {
     this.panner.positionY.value = pos.y;
     this.panner.positionZ.value = pos.z;
 
-    // inner constant zone
+    // inner plateau
     if (dist <= this.data.plateau) {
       this.gainNode.gain.value = 0.5;
       this.filter.frequency.value = 20000;
       return;
     }
 
-    // falloff
+    // volume falloff
     const steps = dist / 0.1;
     let vol = Math.max(0, 0.5 * (1 - steps * this.data.falloff));
     if (dist > this.data.maxRadius) vol = 0;
     this.gainNode.gain.value = vol;
 
-    // lowpass based on distance
+    // low-pass filter
     const t = Math.min(1, dist / this.data.maxRadius);
     this.filter.frequency.value = 20000 - t * (20000 - 500);
   }
