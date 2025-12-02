@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>WebXR Audio Experience</title>
 
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=22"></script>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js?v=23"></script>
 
   <style>
     #startOverlay {
@@ -48,21 +48,20 @@
         const A=this.data.sound?.components.sound;
         const B=this.data.nextsound?.components.sound;
 
+        // When A ends → show B + play B
         if (A) {
           this.data.sound.addEventListener("sound-ended",()=>{
-            // hide A (if somehow still visible)
-            if (!self.insideZone && self.data.asphere)
-              self.data.asphere.setAttribute("visible","false");
+            if (self.data.bsphere)
+              self.data.bsphere.setAttribute("visible","true");
 
-            // show + play B
             if (!self.secondaryPlayed && B){
-              if (self.data.bsphere) self.data.bsphere.setAttribute("visible","true");
               B.playSound();
               self.secondaryPlayed=true;
             }
           });
         }
 
+        // B ends → hide B completely
         if (B) {
           this.data.nextsound.addEventListener("sound-ended",()=>{
             if (self.data.bsphere)
@@ -75,19 +74,22 @@
         const cam=this.el.sceneEl.camera.el.object3D.position;
         const pos=this.el.object3D.position;
         const dist=cam.distanceTo(pos);
-        const ambient=this.data.ambient?.components.sound;
 
+        const ambient=this.data.ambient?.components.sound;
         const inside = dist < this.data.distance;
 
-        // ENTER zone — hide debug spheres instantly
+        // ENTER trigger zone
         if (inside && !this.insideZone) {
           this.insideZone = true;
 
+          // hide spheres immediately
           if (this.data.asphere) this.data.asphere.setAttribute("visible","false");
           if (this.data.bsphere) this.data.bsphere.setAttribute("visible","false");
 
-          if (ambient) ambient.pauseSound();
+          // pause ambience
+          if (ambient && ambient.isPlaying) ambient.pauseSound();
 
+          // play A if not yet played
           if (!this.primaryPlayed && this.data.sound) {
             const A=this.data.sound.components.sound;
             if (!A.isPlaying) A.playSound();
@@ -95,17 +97,18 @@
           }
         }
 
-        // EXIT zone
+        // EXIT trigger zone → ambience returns
         if (!inside && this.insideZone) {
           this.insideZone = false;
 
+          // stop A + B immediately
           if (this.data.sound?.components.sound)
             this.data.sound.components.sound.stopSound();
-
           if (this.data.nextsound?.components.sound)
             this.data.nextsound.components.sound.stopSound();
 
-          if (ambient) ambient.playSound();
+          // ambience resumes
+          if (ambient && !ambient.isPlaying) ambient.playSound();
         }
       }
     });
@@ -123,7 +126,6 @@
 
 <a-scene renderer="colorManagement:true" vr-mode-ui="enabled:false" ar-mode-ui="enabled:false">
 
-  <!-- CAMERA STARTS EXACTLY IN CENTER -->
   <a-entity id="camera"
     camera
     wasd-controls="enabled:false"
@@ -131,43 +133,147 @@
     position="0 1.6 0">
   </a-entity>
 
-  <!-- INTRO -->
   <a-entity id="intro"
-    sound="src:url(assets/audio/audio_intro.wav?v=22); autoplay:false; positional:false; loop:false; volume:1;">
+    sound="src:url(assets/audio/audio_intro.wav?v=23); autoplay:false; positional:false; loop:false; volume:1;">
   </a-entity>
 
-  <!-- AMBIENCE -->
   <a-entity id="ambient"
-    sound="src:url(assets/audio/audio_ambience.wav?v=22); autoplay:false; positional:false; loop:true; volume:0;">
+    sound="src:url(assets/audio/audio_ambience.wav?v=23); autoplay:false; positional:false; loop:true; volume:0;">
   </a-entity>
 
 
-  <!-- === CLEAN 2-METER GRID, 1.5M DIAMETER SPHERES (0.75 radius) === -->
+  <!-- === DEEPER CORNERS === -->
+  <!-- A = (±2, ±2), radius 0.75 -->
+  <!-- B = (±3.75, ±3.75), radius 0.75 -->
 
   <!-- CORNER 1 -->
   <a-sphere id="a1" class="asphere" visible="false"
-    color="#FFD400" radius="0.75" position="1 1 -1"></a-sphere>
+    color="#FFD400" radius="0.75" position="2 1 -2"></a-sphere>
 
   <a-sphere id="b1" visible="false"
-    color="#00FFFF" radius="0.75" position="2.5 1 -2.5"></a-sphere>
+    color="#00FFFF" radius="0.75" position="3.75 1 -3.75"></a-sphere>
 
-  <a-entity id="corner1" position="1 1 -1"
+  <a-entity id="corner1" position="2 1 -2"
     proximity-trigger="sound:#s1; nextsound:#s1b; distance:1.5;
-                       asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
+                      asphere:#a1; bsphere:#b1; ambient:#ambient"></a-entity>
 
-  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav?v=22); positional:true"></a-entity>
-  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav?v=22); positional:true"></a-entity>
+  <a-entity id="s1" sound="src:url(assets/audio/audio_1.wav?v=23); positional:true"></a-entity>
+  <a-entity id="s1b" sound="src:url(assets/audio/audio_1b.wav?v=23); positional:true"></a-entity>
 
 
   <!-- CORNER 2 -->
   <a-sphere id="a2" class="asphere" visible="false"
-    color="#FFD400" radius="0.75" position="-1 1 -1"></a-sphere>
+    color="#FFD400" radius="0.75" position="-2 1 -2"></a-sphere>
 
   <a-sphere id="b2" visible="false"
-    color="#00FFFF" radius="0.75" position="-2.5 1 -2.5"></a-sphere>
+    color="#00FFFF" radius="0.75" position="-3.75 1 -3.75"></a-sphere>
 
-  <a-entity id="corner2" position="-1 1 -1"
+  <a-entity id="corner2" position="-2 1 -2"
     proximity-trigger="sound:#s2; nextsound:#s2b; distance:1.5;
-                       asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
+                      asphere:#a2; bsphere:#b2; ambient:#ambient"></a-entity>
 
-  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav?v=22); positional:true"></a_
+  <a-entity id="s2" sound="src:url(assets/audio/audio_2.wav?v=23); positional:true"></a-entity>
+  <a-entity id="s2b" sound="src:url(assets/audio/audio_2b.wav?v=23); positional:true"></a-entity>
+
+
+  <!-- CORNER 3 -->
+  <a-sphere id="a3" class="asphere" visible="false"
+    color="#FFD400" radius="0.75" position="2 1 2"></a-sphere>
+
+  <a-sphere id="b3" visible="false"
+    color="#00FFFF" radius="0.75" position="3.75 1 3.75"></a-sphere>
+
+  <a-entity id="corner3" position="2 1 2"
+    proximity-trigger="sound:#s3; nextsound:#s3b; distance:1.5;
+                      asphere:#a3; bsphere:#b3; ambient:#ambient"></a-entity>
+
+  <a-entity id="s3" sound="src:url(assets/audio/audio_3.wav?v=23); positional:true"></a-entity>
+  <a-entity id="s3b" sound="src:url(assets/audio/audio_3b.wav?v=23); positional:true"></a-entity>
+
+
+  <!-- CORNER 4 -->
+  <a-sphere id="a4" class="asphere" visible="false"
+    color="#FFD400" radius="0.75" position="-2 1 2"></a-sphere>
+
+  <a-sphere id="b4" visible="false"
+    color="#00FFFF" radius="0.75" position="-3.75 1 3.75"></a-sphere>
+
+  <a-entity id="corner4" position="-2 1 2"
+    proximity-trigger="sound:#s4; nextsound:#s4b; distance:1.5;
+                      asphere:#a4; bsphere:#b4; ambient:#ambient"></a-entity>
+
+  <a-entity id="s4" sound="src:url(assets/audio/audio_4.wav?v=23); positional:true"></a-entity>
+  <a-entity id="s4b" sound="src:url(assets/audio/audio_4b.wav?v=23); positional:true"></a-entity>
+
+</a-scene>
+
+<script>
+  function isIOS(){ return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
+
+  // A-Frame 1.7.0 compatible crossfade
+  function crossfade(intro, amb, fadeTime=1500){
+    let start=null;
+    function step(ts){
+      if(!start) start=ts;
+      let p=(ts-start)/fadeTime;
+      if(p>1)p=1;
+
+      intro.setAttribute("sound","volume",1-p);
+      amb.setAttribute("sound","volume",p);
+
+      if(p<1) requestAnimationFrame(step);
+      else intro.components.sound.stopSound();
+    }
+    requestAnimationFrame(step);
+  }
+
+  function handleIntroEnded(intro, amb){
+    document.querySelectorAll(".asphere").forEach(a=>a.setAttribute("visible","true"));
+    amb.components.sound.playSound();
+    crossfade(intro, amb);
+  }
+
+  // START BUTTON
+  document.querySelector("#startButton").addEventListener("click", async()=>{
+    const overlay=document.querySelector("#startOverlay");
+    const intro=document.querySelector("#intro");
+    const amb=document.querySelector("#ambient");
+    const scene=document.querySelector("a-scene");
+
+    overlay.style.display="none";
+
+    if(isIOS()){
+      intro.components.sound.playSound();
+      intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
+      return;
+    }
+
+    scene.setAttribute("webxr","optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;");
+
+    try{ await scene.enterAR(); }catch(e){ console.warn("AR failed",e); }
+    await new Promise(r=>setTimeout(r,300));
+
+    intro.components.sound.playSound();
+    intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
+  });
+
+  // DESKTOP DEBUG BUTTON
+  document.querySelector("#debugButton").addEventListener("click",()=>{
+    const overlay=document.querySelector("#startOverlay");
+    const intro=document.querySelector("#intro");
+    const amb=document.querySelector("#ambient");
+    const camera=document.querySelector("#camera");
+
+    overlay.style.display="none";
+
+    camera.setAttribute("wasd-controls","enabled:true");
+    camera.setAttribute("look-controls","pointerLockEnabled:true");
+    camera.setAttribute("position","0 1.6 0");
+
+    intro.components.sound.playSound();
+    intro.addEventListener("sound-ended",()=>handleIntroEnded(intro,amb));
+  });
+</script>
+
+</body>
+</html>
