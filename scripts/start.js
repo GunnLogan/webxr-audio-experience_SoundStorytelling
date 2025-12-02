@@ -24,9 +24,11 @@ window.onload = () => {
     // -------------------------------
     if (isIOS()) {
       intro.components.sound.playSound();
-      intro.addEventListener("sound-ended", () =>
-        handleIntroEnded(intro, ambient)
-      );
+
+      intro.addEventListener("sound-ended", () => {
+        handleIntroEnded(intro, ambient);
+      });
+
       return;
     }
 
@@ -39,9 +41,19 @@ window.onload = () => {
     );
 
     try {
-      await scene.enterAR();  
+      await scene.enterAR();
     } catch (e) {
       console.warn("AR entry failed:", e);
     }
- }
-    // Delay for WebXR act
+
+    // Delay for WebXR activation before playing intro
+    setTimeout(() => {
+      intro.components.sound.playSound();
+
+      intro.addEventListener("sound-ended", () => {
+        handleIntroEnded(intro, ambient);
+      });
+    }, 500);
+  });
+
+}; // ← closes window.onload
