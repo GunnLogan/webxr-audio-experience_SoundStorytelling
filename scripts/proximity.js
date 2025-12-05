@@ -1,10 +1,22 @@
+/***********************************************************
+ *  Utility: Set opacity of spheres
+ ***********************************************************/
 function setSphereOpacity(sphere, opacity) {
   if (!sphere) return;
   sphere.setAttribute("material", `transparent:true; opacity:${opacity}`);
 }
 
 /***********************************************************
- *  CLUSTER PROXIMITY (A → B → C/D)
+ *  Utility: Permanently disable a trigger sphere
+ ***********************************************************/
+function disableTrigger(sphere) {
+  if (!sphere) return;
+  sphere.dataset.triggered = "true"; // mark as inactive
+  sphere.setAttribute("visible", false);
+}
+
+/***********************************************************
+ *  CLUSTER PROXIMITY SYSTEM (A → B → C/D)
  ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
@@ -34,6 +46,7 @@ AFRAME.registerComponent("cluster-proximity", {
     this.cUnlocked = false;
     this.dUnlocked = false;
 
+    // Initial visibility setup
     if (d.asphere) { d.asphere.setAttribute("visible", true); setSphereOpacity(d.asphere, 1); }
     if (d.bsphere) d.bsphere.setAttribute("visible", false);
     if (d.csphere) d.csphere.setAttribute("visible", false);
@@ -49,6 +62,7 @@ AFRAME.registerComponent("cluster-proximity", {
     const d = this.data;
     const camPos = scene.camera.el.object3D.position;
 
+    // Helper distance function
     const dist = (sphere) =>
       sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
 
@@ -57,40 +71,67 @@ AFRAME.registerComponent("cluster-proximity", {
     const distC = dist(d.csphere);
     const distD = dist(d.dsphere);
 
-    // A → unlock B
-    if (d.asphere && d.soundA?.components?.sound) {
+
+    /* ============================================================
+       A TRIGGER → unlock B
+    ============================================================ */
+    if (d.asphere &&
+        d.soundA?.components?.sound &&
+        !d.asphere.dataset.triggered) {
+
       const inA = distA < d.distance;
 
       if (inA && !this.aInside) {
-        if (!this.Aused || window._lastATrigger !== this.el.id) {
-          d.soundA.components.sound.playSound();
 
+        if (!this.Aused || window._lastATrigger !== this.el.id) {
+
+          d.soundA.components.sound.playSound();
           this.Aused = true;
           window._lastATrigger = this.el.id;
 
           setSphereOpacity(d.asphere, 0.25);
-          setTimeout(() => d.asphere.setAttribute("visible", false),
-            d.soundA.components.sound.duration * 1000);
+          setTimeout(() => disableTrigger(d.asphere),
+            d.soundA.components.sound.duration * 1000
+          );
 
+          // Unlock B
           this.bUnlocked = true;
           d.bsphere.setAttribute("visible", true);
           setSphereOpacity(d.bsphere, 1.0);
+
+          // Reset A triggers on OTHER clusters
+          document.querySelectorAll("[cluster-proximity]").forEach((cl) => {
+            if (cl.id !== this.el.id) {
+              cl.components["cluster-proximity"].Aused = false;
+            }
+          });
         }
       }
+
       this.aInside = inA;
     }
 
-    // B → unlock C & D
-    if (this.bUnlocked && d.bsphere && d.soundB?.components?.sound) {
+
+    /* ============================================================
+       B TRIGGER → unlock C and D
+    ============================================================ */
+    if (this.bUnlocked &&
+        d.bsphere &&
+        d.soundB?.components?.sound &&
+        !d.bsphere.dataset.triggered) {
+
       const inB = distB < d.distance;
 
       if (inB && !this.bInside) {
+
         d.soundB.components.sound.playSound();
 
         setSphereOpacity(d.bsphere, 0.25);
-        setTimeout(() => d.bsphere.setAttribute("visible", false),
-          d.soundB.components.sound.duration * 1000);
+        setTimeout(() => disableTrigger(d.bsphere),
+          d.soundB.components.sound.duration * 1000
+        );
 
+        // Unlock C + D
         this.cUnlocked = true;
         this.dUnlocked = true;
 
@@ -104,29 +145,49 @@ AFRAME.registerComponent("cluster-proximity", {
       this.bInside = inB;
     }
 
-    // C trigger
-    if (this.cUnlocked && d.csphere && d.soundC?.components?.sound) {
+
+    /* ============================================================
+       C TRIGGER
+    ============================================================ */
+    if (this.cUnlocked &&
+        d.csphere &&
+        d.soundC?.components?.sound &&
+        !d.csphere.dataset.triggered) {
+
       const inC = distC < d.distance;
 
       if (inC && !this.cInside) {
+
         d.soundC.components.sound.playSound();
+
         setSphereOpacity(d.csphere, 0.25);
-        setTimeout(() => d.csphere.setAttribute("visible", false),
-          d.soundC.components.sound.duration * 1000);
+        setTimeout(() => disableTrigger(d.csphere),
+          d.soundC.components.sound.duration * 1000
+        );
       }
 
       this.cInside = inC;
     }
 
-    // D trigger
-    if (this.dUnlocked && d.dsphere && d.soundD?.components?.sound) {
+
+    /* ============================================================
+       D TRIGGER
+    ============================================================ */
+    if (this.dUnlocked &&
+        d.dsphere &&
+        d.soundD?.components?.sound &&
+        !d.dsphere.dataset.triggered) {
+
       const inD = distD < d.distance;
 
       if (inD && !this.dInside) {
+
         d.soundD.components.sound.playSound();
+
         setSphereOpacity(d.dsphere, 0.25);
-        setTimeout(() => d.dsphere.setAttribute("visible", false),
-          d.soundD.components.sound.duration * 1000);
+        setTimeout(() => disableTrigger(d.dsphere),
+          d.soundD.components.sound.duration * 1000
+        );
       }
 
       this.dInside = inD;
@@ -134,8 +195,9 @@ AFRAME.registerComponent("cluster-proximity", {
   }
 });
 
+
 /***********************************************************
- *  AMBIENT PROXIMITY — volume only, no autoplay
+ *  AMBIENT SPATIAL PROXIMITY SYSTEM (unchanged)
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
@@ -146,7 +208,7 @@ AFRAME.registerComponent("ambient-proximity", {
   },
 
   tick() {
-    if (!window._experienceStarted) return; // don't do anything before START
+    if (!window._experienceStarted) return;
 
     const scene = this.el.sceneEl;
     if (!scene?.camera) return;
