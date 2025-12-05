@@ -24,18 +24,26 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // Global flag: nothing should auto-play before this is true
+  window._experienceStarted = false;
+
   // ============================================================
   // AUDIO UNLOCK — resume A-Frame AudioContext only
   // ============================================================
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
     if (ctx && ctx.state === "suspended") {
-      await ctx.resume();
+      try {
+        await ctx.resume();
+        console.log("AudioContext resumed:", ctx.state);
+      } catch (e) {
+        console.warn("AudioContext resume failed:", e);
+      }
     }
   }
 
   // ============================================================
-  // MOBILE AR ENTRY (fixed hit-test blocking issue)
+  // MOBILE AR ENTRY (hit-test optional)
   // ============================================================
   async function tryEnterARMobile() {
     if (!navigator.xr || !navigator.xr.isSessionSupported) {
@@ -49,7 +57,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!supported) return;
 
-      // SAFE AR entry (hit-test optional)
       scene.setAttribute(
         "webxr",
         "optionalFeatures: local-floor, hit-test;"
@@ -58,7 +65,6 @@ window.addEventListener("DOMContentLoaded", () => {
       await scene.enterAR();
       console.log("Entered AR successfully");
 
-      // MUST REMOVE OVERLAY LAYERS FROM XR COMPOSITION
       blackout.style.display = "none";
       overlay.style.display = "none";
 
@@ -82,18 +88,20 @@ window.addEventListener("DOMContentLoaded", () => {
   // START BUTTON — MOBILE AR MODE
   // ============================================================
   startButton.addEventListener("click", async () => {
+    // Mark experience as started (ambient-proximity will see this)
+    window._experienceStarted = true;
+
+    // First unlock audio after user gesture
     await unlockAudio();
 
-    // Fade overlay
     overlay.style.opacity = "0";
     overlay.classList.add("hidden");
 
     setTimeout(() => {
       overlay.style.display = "none";
-      blackout.style.display = "none";   // CRITICAL FIX
+      blackout.style.display = "none";
     }, 800);
 
-    // AR MODE — no manual camera transform allowed
     cam.removeAttribute("position");
     cam.setAttribute("wasd-controls", "enabled:false");
     cam.setAttribute("look-controls", "enabled:true");
@@ -102,6 +110,9 @@ window.addEventListener("DOMContentLoaded", () => {
       await tryEnterARMobile();
     }
 
+    // Second unlock just in case AR permission flow suspended audio again
+    await unlockAudio();
+
     intro?.components?.sound?.playSound();
   });
 
@@ -109,6 +120,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // DEBUG BUTTON — DESKTOP MODE
   // ============================================================
   debugButton.addEventListener("click", async () => {
+    window._experienceStarted = true;
+
     await unlockAudio();
 
     overlay.style.opacity = "0";
