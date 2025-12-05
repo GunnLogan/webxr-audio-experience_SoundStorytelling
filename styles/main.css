@@ -14,17 +14,15 @@ html, body {
 
 /* ================================================
    START OVERLAY (Fade to black screen)
-   This replaces `position: fixed` with `absolute` 
-   to prevent duplication on Android Chrome.
    ================================================ */
 #startOverlay {
   position: absolute;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  
+
   background: rgba(0,0,0,0.85);
-  
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -32,6 +30,14 @@ html, body {
   z-index: 9999;
   opacity: 1;
   transition: opacity 0.8s ease;
+
+  /* Mobile fix: prevent Safari gesture conflicts */
+  touch-action: none;
+}
+
+/* Mobile fix: stop intercepting taps once faded */
+#startOverlay.hidden {
+  pointer-events: none;
 }
 
 /* Buttons wrapper */
@@ -42,7 +48,8 @@ html, body {
 }
 
 /* Buttons */
-#startButton, #debugButton {
+#startButton,
+#debugButton {
   padding: 16px 32px;
   font-size: 1.4rem;
   border: none;
@@ -50,6 +57,10 @@ html, body {
   min-width: 220px;
   cursor: pointer;
   font-weight: 600;
+
+  /* Mobile fix: guarantee touch top layer */
+  position: relative;
+  z-index: 10000;
 }
 
 #startButton {
@@ -66,7 +77,6 @@ html, body {
 /* ================================================
    BLACKOUT SCREEN
    Stays black on mobile forever.
-   Fades in after Start button is pressed.
    ================================================ */
 #blackoutScreen {
   position: absolute;
@@ -81,6 +91,7 @@ html, body {
   z-index: 9000;
 
   transition: opacity 0.8s ease;
+  touch-action: none; /* mobile safe */
 }
 
 #blackoutScreen.active {
@@ -110,7 +121,9 @@ button:active {
 }
 
 /* Prevent text selection on mobile */
-button, #startOverlay, #blackoutScreen {
+button,
+#startOverlay,
+#blackoutScreen {
   user-select: none;
   -webkit-user-select: none;
 }
