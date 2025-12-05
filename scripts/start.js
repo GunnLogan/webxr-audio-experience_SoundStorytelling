@@ -7,7 +7,6 @@ function isAndroid() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-
   if (window._startBound) return;
   window._startBound = true;
 
@@ -25,24 +24,29 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // ============================================================
+  // AUDIO UNLOCK (iOS/Android requires user gesture)
+  // ============================================================
   async function unlockAudio() {
     const ctx = AFRAME.audioContext || new (window.AudioContext || window.webkitAudioContext)();
     AFRAME.audioContext = ctx;
-    if (ctx.state === "suspended") await ctx.resume();
+
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
   }
 
-  // ----------------------------------------------------
+  // ============================================================
   // MOBILE START
-  // ----------------------------------------------------
+  // ============================================================
   startButton.addEventListener("click", async () => {
     await unlockAudio();
 
-    overlay.style.transition = "opacity 0.8s ease";
+    // Fade overlay
     overlay.style.opacity = "0";
+    overlay.classList.add("hidden");
 
-    // 🔥 Critical mobile fix
-    overlay.style.pointerEvents = "none";
-
+    // After fade, hide fully & activate blackout
     setTimeout(() => {
       overlay.style.display = "none";
       blackout.classList.add("active");
@@ -51,21 +55,20 @@ window.addEventListener("DOMContentLoaded", () => {
     intro?.components?.sound?.playSound();
   });
 
-  // ----------------------------------------------------
-  // DESKTOP DEBUG
-  // ----------------------------------------------------
+  // ============================================================
+  // DESKTOP DEBUG MODE
+  // ============================================================
   debugButton.addEventListener("click", async () => {
     await unlockAudio();
 
-    overlay.style.transition = "opacity 0.8s ease";
     overlay.style.opacity = "0";
-
-    overlay.style.pointerEvents = "none";
+    overlay.classList.add("hidden");
 
     setTimeout(() => {
       overlay.style.display = "none";
     }, 800);
 
+    // Try entering AR (will fail on desktop, which is fine)
     try {
       scene.setAttribute(
         "webxr",
@@ -73,7 +76,7 @@ window.addEventListener("DOMContentLoaded", () => {
       );
       await scene.enterAR();
     } catch (e) {
-      console.warn("AR entry failed (expected on desktop):", e);
+      console.warn("Desktop — AR entry expected to fail:", e);
     }
 
     intro?.components?.sound?.playSound();
