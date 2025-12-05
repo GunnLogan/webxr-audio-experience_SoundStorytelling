@@ -1,37 +1,4 @@
 /***********************************************************
- *  Utility: Wait for Web Audio context
- ***********************************************************/
-async function waitForAudioContext() {
-  while (!AFRAME.audioContext) {
-    await new Promise((r) => setTimeout(r, 10));
-  }
-  return AFRAME.audioContext;
-}
-
-/***********************************************************
- *  Utility: Create spatial mono HRTF panner for a sound node
- *  NOTE: Always use the node's own AudioContext.
- ***********************************************************/
-async function makeSpatial(node) {
-  // 👇 Use the node's context if available, fall back to global
-  const ctx = node.context || (await waitForAudioContext());
-  if (!ctx) return;
-
-  const panner = ctx.createPanner();
-  panner.panningModel = "HRTF";
-
-  // Loud settings
-  panner.distanceModel = "inverse";
-  panner.refDistance = 4;
-  panner.rolloffFactor = 0.01;
-  panner.maxDistance = 100;
-
-  node.panner = panner;
-  panner.connect(ctx.destination);
-  node.setNodeSource(panner);
-}
-
-/***********************************************************
  *  Utility: Set opacity of spheres
  ***********************************************************/
 function setSphereOpacity(sphere, opacity) {
@@ -40,27 +7,9 @@ function setSphereOpacity(sphere, opacity) {
 }
 
 /***********************************************************
- *  Utility: Update panner position every frame
- ***********************************************************/
-function updateSpatialPosition(soundEntity) {
-  if (!soundEntity?.components?.sound) return;
-
-  const nodes = soundEntity.components.sound.pool?.children;
-  if (!nodes) return;
-
-  const pos = soundEntity.object3D.position;
-
-  nodes.forEach((node) => {
-    if (node.panner) {
-      node.panner.positionX.value = pos.x;
-      node.panner.positionY.value = pos.y;
-      node.panner.positionZ.value = pos.z;
-    }
-  });
-}
-
-/***********************************************************
  *  CLUSTER PROXIMITY CONTROLLER
+ *  - Handles A/B/C/D unlocking and playback
+ *  - Relies on A-Frame's built-in positional audio
  ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
@@ -98,15 +47,6 @@ AFRAME.registerComponent("cluster-proximity", {
     if (d.dsphere) d.dsphere.setAttribute("visible", false);
 
     if (!window._lastATrigger) window._lastATrigger = null;
-
-    // Spatialize cluster sounds
-    [d.soundA, d.soundB, d.soundC, d.soundD].forEach((snd) => {
-      if (!snd?.components?.sound) return;
-      const pool = snd.components.sound.pool?.children || [];
-      pool.forEach(async (node) => {
-        await makeSpatial(node);
-      });
-    });
   },
 
   tick: function () {
@@ -115,12 +55,6 @@ AFRAME.registerComponent("cluster-proximity", {
 
     const camPos = scene.camera.el.object3D.position;
     const d = this.data;
-
-    // update positional audio coordinates
-    updateSpatialPosition(d.soundA);
-    updateSpatialPosition(d.soundB);
-    updateSpatialPosition(d.soundC);
-    updateSpatialPosition(d.soundD);
 
     const dist = (sphere) =>
       sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
@@ -157,7 +91,7 @@ AFRAME.registerComponent("cluster-proximity", {
 
           // Allow the next A after switching clusters
           document.querySelectorAll("[cluster-proximity]").forEach((cl) => {
-            if (cl.id !== this.el.id) {
+            if (cl.id !== this.el.id && cl.components["cluster-proximity"]) {
               cl.components["cluster-proximity"].Aused = false;
             }
           });
@@ -235,7 +169,8 @@ AFRAME.registerComponent("cluster-proximity", {
 
 
 /***********************************************************
- *  AMBIENT SPATIAL PROXIMITY SYSTEM
+ *  AMBIENT PROXIMITY (simplified, no custom Web Audio graph)
+ *  - Just controls volume based on distance
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
@@ -245,99 +180,41 @@ AFRAME.registerComponent("ambient-proximity", {
     plateau: { default: 0.5 }
   },
 
-  async init() {
+  init() {
     this.started = false;
-    this.ready = false;
-
-    const ambientEl = this.data.ambient;
-    if (!ambientEl) return;
-
-    // Wait for sound pool to exist
-    let tries = 0;
-    while (
-      !ambientEl.components.sound?.pool?.children?.length &&
-      tries < 200
-    ) {
-      await new Promise((r) => setTimeout(r, 20));
-      tries++;
-    }
-
-    const poolChildren = ambientEl.components.sound.pool?.children || [];
-    if (!poolChildren.length) {
-      console.warn("Ambient sound pool not ready.");
-      return;
-    }
-
-    // 👇 Use the ambient node's own audio context
-    const node = poolChildren[0];
-    const ctx = node.context || (await waitForAudioContext());
-    if (!ctx) return;
-
-    // Gain + Filter + Panner chain
-    this.gainNode = ctx.createGain();
-    this.gainNode.gain.value = 0.5;
-
-    this.filter = ctx.createBiquadFilter();
-    this.filter.type = "lowpass";
-    this.filter.frequency.value = 20000;
-
-    this.panner = ctx.createPanner();
-    this.panner.panningModel = "HRTF";
-    this.panner.distanceModel = "inverse";
-    this.panner.refDistance = 1;
-    this.panner.rolloffFactor = 0.5;
-
-    this.panner.connect(this.filter);
-    this.filter.connect(this.gainNode);
-    this.gainNode.connect(ctx.destination);
-
-    // Route all pool nodes through our panner
-    poolChildren.forEach((n) => {
-      n.setNodeSource(this.panner);
-    });
-
-    this.ready = true;
   },
 
   tick() {
-    if (!this.ready || !this.panner) return;
-
     const scene = this.el.sceneEl;
     if (!scene?.camera) return;
 
+    const ambientEl = this.data.ambient;
+    if (!ambientEl?.components?.sound) return;
+
+    const sound = ambientEl.components.sound;
     const camPos = scene.camera.el.object3D.position;
     const pos = this.el.object3D.position;
-    const ambient = this.data.ambient?.components?.sound;
-
-    if (!ambient) return;
 
     if (!this.started) {
-      ambient.playSound();
+      sound.playSound();
       this.started = true;
     }
 
     const dist = camPos.distanceTo(pos);
 
-    // Panner world position
-    this.panner.positionX.value = pos.x;
-    this.panner.positionY.value = pos.y;
-    this.panner.positionZ.value = pos.z;
+    // Basic plateau + falloff logic
+    let vol = 0.5;
 
-    // plateau zone
     if (dist <= this.data.plateau) {
-      this.gainNode.gain.value = 0.5;
-      this.filter.frequency.value = 20000;
-      return;
+      vol = 0.5;
+    } else {
+      const steps = dist / 0.1;
+      vol = Math.max(0, 0.5 * (1 - steps * this.data.falloff));
+      if (dist > this.data.maxRadius) vol = 0;
     }
 
-    // volume falloff
-    const steps = dist / 0.1;
-    let vol = Math.max(0, 0.5 * (1 - steps * this.data.falloff));
-    if (dist > this.data.maxRadius) vol = 0;
-    this.gainNode.gain.value = vol;
-
-    // low-pass rolloff
-    const t = Math.min(1, dist / this.data.maxRadius);
-    this.filter.frequency.value = 20000 - t * (20000 - 500);
+    // Clamp and apply via A-Frame API
+    vol = Math.max(0, Math.min(1, vol));
+    ambientEl.setAttribute("sound", "volume", vol);
   }
 });
