@@ -25,18 +25,41 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // AUDIO UNLOCK (Important fix: never replace A-Frame's context)
+  // AUDIO UNLOCK (never replaces A-Frame's AudioContext)
   // ============================================================
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
-
-    // If A-Frame already created a context, resume it.
     if (ctx && ctx.state === "suspended") {
       await ctx.resume();
     }
+    // If ctx does not exist yet, A-Frame will lazily create it
+    // when the first sound is played.
+  }
 
-    // If ctx does NOT exist yet, A-Frame will auto-create it
-    // on the first playSound() call — no need to manually create one.
+  // ============================================================
+  // Safe AR enter for desktop debug (no more resize warnings)
+  // ============================================================
+  async function tryEnterAR(sceneEl) {
+    try {
+      if (!navigator.xr || !navigator.xr.isSessionSupported) {
+        console.warn("WebXR not available; skipping AR enter.");
+        return;
+      }
+
+      const supported = await navigator.xr.isSessionSupported("immersive-ar");
+      if (!supported) {
+        console.warn("Immersive AR not supported on this device.");
+        return;
+      }
+
+      sceneEl.setAttribute(
+        "webxr",
+        "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
+      );
+      await sceneEl.enterAR();
+    } catch (e) {
+      console.warn("Desktop debug: AR entry not possible, continuing normally.", e);
+    }
   }
 
   // ============================================================
@@ -45,17 +68,15 @@ window.addEventListener("DOMContentLoaded", () => {
   startButton.addEventListener("click", async () => {
     await unlockAudio();
 
-    // Fade overlay
+    // Fade overlay + stop blocking touches
     overlay.style.opacity = "0";
-    overlay.classList.add("hidden"); // Stops blocking all touches instantly
+    overlay.classList.add("hidden");
 
-    // Remove overlay & activate blackout after fade
     setTimeout(() => {
       overlay.style.display = "none";
       blackout.classList.add("active");
     }, 800);
 
-    // Play intro
     intro?.components?.sound?.playSound();
   });
 
@@ -72,19 +93,9 @@ window.addEventListener("DOMContentLoaded", () => {
       overlay.style.display = "none";
     }, 800);
 
-    // Desktop debug: try to enter AR if possible
-    try {
-      scene.setAttribute(
-        "webxr",
-        "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
-      );
+    // Try AR, but only if supported – no warnings on desktop
+    await tryEnterAR(scene);
 
-      await scene.enterAR();
-    } catch (e) {
-      console.warn("Desktop: AR entry failed (expected):", e);
-    }
-
-    // Play intro
     intro?.components?.sound?.playSound();
   });
 });
