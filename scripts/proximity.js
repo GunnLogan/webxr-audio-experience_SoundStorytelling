@@ -16,7 +16,7 @@ function disableTrigger(sphere) {
 }
 
 /***********************************************************
- *  CLUSTER PROXIMITY SYSTEM (A → B → C/D)
+ *  CLUSTER PROXIMITY SYSTEM (A → B → C & D)
  ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
@@ -36,23 +36,20 @@ AFRAME.registerComponent("cluster-proximity", {
   init() {
     const d = this.data;
 
+    // internal state flags
     this.aInside = false;
     this.bInside = false;
     this.cInside = false;
     this.dInside = false;
 
-    this.Aused = false;
     this.bUnlocked = false;
-    this.cUnlocked = false;
-    this.dUnlocked = false;
+    this.cdUnlocked = false;   // NEW: unlock C+D together
 
-    // Initial visibility setup
+    // INITIAL VISIBILITY — only A
     if (d.asphere) { d.asphere.setAttribute("visible", true); setSphereOpacity(d.asphere, 1); }
     if (d.bsphere) d.bsphere.setAttribute("visible", false);
     if (d.csphere) d.csphere.setAttribute("visible", false);
     if (d.dsphere) d.dsphere.setAttribute("visible", false);
-
-    if (!window._lastATrigger) window._lastATrigger = null;
   },
 
   tick() {
@@ -62,7 +59,6 @@ AFRAME.registerComponent("cluster-proximity", {
     const d = this.data;
     const camPos = scene.camera.el.object3D.position;
 
-    // Helper distance function
     const dist = (sphere) =>
       sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
 
@@ -71,54 +67,42 @@ AFRAME.registerComponent("cluster-proximity", {
     const distC = dist(d.csphere);
     const distD = dist(d.dsphere);
 
-
-    /* ============================================================
-       A TRIGGER → unlock B
-    ============================================================ */
+    /***********************************************************
+     * A TRIGGER → hide A → show B only
+     ***********************************************************/
     if (d.asphere &&
-        d.soundA?.components?.sound &&
-        !d.asphere.dataset.triggered) {
+        !d.asphere.dataset.triggered &&
+        d.soundA?.components?.sound) {
 
       const inA = distA < d.distance;
 
       if (inA && !this.aInside) {
 
-        if (!this.Aused || window._lastATrigger !== this.el.id) {
+        d.soundA.components.sound.playSound();
 
-          d.soundA.components.sound.playSound();
-          this.Aused = true;
-          window._lastATrigger = this.el.id;
+        setSphereOpacity(d.asphere, 0.25);
+        setTimeout(() => disableTrigger(d.asphere),
+          d.soundA.components.sound.duration * 1000
+        );
 
-          setSphereOpacity(d.asphere, 0.25);
-          setTimeout(() => disableTrigger(d.asphere),
-            d.soundA.components.sound.duration * 1000
-          );
+        // SHOW ONLY B
+        d.bsphere.setAttribute("visible", true);
+        setSphereOpacity(d.bsphere, 1);
 
-          // Unlock B
-          this.bUnlocked = true;
-          d.bsphere.setAttribute("visible", true);
-          setSphereOpacity(d.bsphere, 1.0);
-
-          // Reset A triggers on OTHER clusters
-          document.querySelectorAll("[cluster-proximity]").forEach((cl) => {
-            if (cl.id !== this.el.id) {
-              cl.components["cluster-proximity"].Aused = false;
-            }
-          });
-        }
+        this.bUnlocked = true;
       }
 
       this.aInside = inA;
     }
 
 
-    /* ============================================================
-       B TRIGGER → unlock C and D
-    ============================================================ */
+    /***********************************************************
+     * B TRIGGER → hide B → show C + D (branching mode)
+     ***********************************************************/
     if (this.bUnlocked &&
         d.bsphere &&
-        d.soundB?.components?.sound &&
-        !d.bsphere.dataset.triggered) {
+        !d.bsphere.dataset.triggered &&
+        d.soundB?.components?.sound) {
 
       const inB = distB < d.distance;
 
@@ -131,28 +115,27 @@ AFRAME.registerComponent("cluster-proximity", {
           d.soundB.components.sound.duration * 1000
         );
 
-        // Unlock C + D
-        this.cUnlocked = true;
-        this.dUnlocked = true;
-
+        // SHOW BOTH C and D — the branch moment
         d.csphere.setAttribute("visible", true);
-        setSphereOpacity(d.csphere, 1);
-
         d.dsphere.setAttribute("visible", true);
+
+        setSphereOpacity(d.csphere, 1);
         setSphereOpacity(d.dsphere, 1);
+
+        this.cdUnlocked = true; // both available
       }
 
       this.bInside = inB;
     }
 
 
-    /* ============================================================
-       C TRIGGER
-    ============================================================ */
-    if (this.cUnlocked &&
+    /***********************************************************
+     * C TRIGGER → hide C ONLY (D still available)
+     ***********************************************************/
+    if (this.cdUnlocked &&
         d.csphere &&
-        d.soundC?.components?.sound &&
-        !d.csphere.dataset.triggered) {
+        !d.csphere.dataset.triggered &&
+        d.soundC?.components?.sound) {
 
       const inC = distC < d.distance;
 
@@ -170,13 +153,13 @@ AFRAME.registerComponent("cluster-proximity", {
     }
 
 
-    /* ============================================================
-       D TRIGGER
-    ============================================================ */
-    if (this.dUnlocked &&
+    /***********************************************************
+     * D TRIGGER → hide D ONLY (C might still be active)
+     ***********************************************************/
+    if (this.cdUnlocked &&
         d.dsphere &&
-        d.soundD?.components?.sound &&
-        !d.dsphere.dataset.triggered) {
+        !d.dsphere.dataset.triggered &&
+        d.soundD?.components?.sound) {
 
       const inD = distD < d.distance;
 
@@ -197,7 +180,7 @@ AFRAME.registerComponent("cluster-proximity", {
 
 
 /***********************************************************
- *  AMBIENT SPATIAL PROXIMITY SYSTEM (unchanged)
+ *  AMBIENT PROXIMITY (unchanged)
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
@@ -213,10 +196,10 @@ AFRAME.registerComponent("ambient-proximity", {
     const scene = this.el.sceneEl;
     if (!scene?.camera) return;
 
-    const ambientEl = this.data.ambient;
-    if (!ambientEl?.components?.sound) return;
+    const amb = this.data.ambient;
+    if (!amb?.components?.sound) return;
 
-    const sound = ambientEl.components.sound;
+    const sound = amb.components.sound;
     const camPos = scene.camera.el.object3D.position;
     const pos = this.el.object3D.position;
 
@@ -229,6 +212,6 @@ AFRAME.registerComponent("ambient-proximity", {
       if (dist > this.data.maxRadius) vol = 0;
     }
 
-    ambientEl.setAttribute("sound", "volume", vol);
+    amb.setAttribute("sound", "volume", vol);
   }
 });
