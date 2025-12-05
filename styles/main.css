@@ -4,16 +4,15 @@
 html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden;       /* Prevents Android double-layer bug */
+  overflow: hidden;
   width: 100%;
   height: 100%;
-  background: black;      /* Safe default before fade */
+  background: black;
   font-family: sans-serif;
 }
 
-
 /* ================================================
-   START OVERLAY (Fade to black screen)
+   START OVERLAY (full-screen landing layer)
    ================================================ */
 #startOverlay {
   position: absolute;
@@ -31,11 +30,11 @@ html, body {
   opacity: 1;
   transition: opacity 0.8s ease;
 
-  /* Mobile fix: prevent Safari gesture conflicts */
+  /* Prevent Safari gesture blocking */
   touch-action: none;
 }
 
-/* Mobile fix: stop intercepting taps once faded */
+/* When faded, overlay stops intercepting touches */
 #startOverlay.hidden {
   pointer-events: none;
 }
@@ -58,9 +57,8 @@ html, body {
   cursor: pointer;
   font-weight: 600;
 
-  /* Mobile fix: guarantee touch top layer */
   position: relative;
-  z-index: 10000;
+  z-index: 10000; /* Always tap-able */
 }
 
 #startButton {
@@ -73,57 +71,5 @@ html, body {
   color: #000;
 }
 
-
 /* ================================================
-   BLACKOUT SCREEN
-   Stays black on mobile forever.
-   ================================================ */
-#blackoutScreen {
-  position: absolute;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-
-  background: black;
-  opacity: 0;
-
-  pointer-events: none;
-  z-index: 9000;
-
-  transition: opacity 0.8s ease;
-  touch-action: none; /* mobile safe */
-}
-
-#blackoutScreen.active {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-
-/* ================================================
-   A-SCENE FIX (prevents overlays from appearing twice)
-   ================================================ */
-a-scene {
-  position: absolute !important;
-  width: 100% !important;
-  height: 100% !important;
-  top: 0;
-  left: 0;
-}
-
-
-/* ================================================
-   OPTIONAL: Better button visuals on mobile
-   ================================================ */
-button:active {
-  transform: scale(0.96);
-  opacity: 0.85;
-}
-
-/* Prevent text selection on mobile */
-button,
-#startOverlay,
-#blackoutScreen {
-  user-select: none;
-  -webkit-user-select: none;
-}
+   BLACKOUT SCREEN (perma
