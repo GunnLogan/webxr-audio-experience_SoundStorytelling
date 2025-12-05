@@ -1,5 +1,5 @@
 /***********************************************************
- *  Utility: Set opacity of spheres
+ * Utility: Set opacity of spheres
  ***********************************************************/
 function setSphereOpacity(sphere, opacity) {
   if (!sphere) return;
@@ -7,16 +7,16 @@ function setSphereOpacity(sphere, opacity) {
 }
 
 /***********************************************************
- *  Utility: Permanently disable a trigger sphere
+ * Utility: Permanently disable a trigger
  ***********************************************************/
 function disableTrigger(sphere) {
   if (!sphere) return;
-  sphere.dataset.triggered = "true"; // mark as inactive
+  sphere.dataset.triggered = "true";
   sphere.setAttribute("visible", false);
 }
 
 /***********************************************************
- *  CLUSTER PROXIMITY SYSTEM (A → B → C & D)
+ * CLUSTER PROXIMITY — Unlock NEXT sphere(s) only AFTER audio ends
  ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
@@ -36,151 +36,146 @@ AFRAME.registerComponent("cluster-proximity", {
   init() {
     const d = this.data;
 
-    // internal state flags
+    // State flags
     this.aInside = false;
     this.bInside = false;
     this.cInside = false;
     this.dInside = false;
 
     this.bUnlocked = false;
-    this.cdUnlocked = false;   // NEW: unlock C+D together
+    this.cdUnlocked = false;
 
-    // INITIAL VISIBILITY — only A
-    if (d.asphere) { d.asphere.setAttribute("visible", true); setSphereOpacity(d.asphere, 1); }
-    if (d.bsphere) d.bsphere.setAttribute("visible", false);
-    if (d.csphere) d.csphere.setAttribute("visible", false);
-    if (d.dsphere) d.dsphere.setAttribute("visible", false);
+    // Start state — only A visible
+    d.asphere.setAttribute("visible", true);
+    setSphereOpacity(d.asphere, 1);
+
+    d.bsphere.setAttribute("visible", false);
+    d.csphere.setAttribute("visible", false);
+    d.dsphere.setAttribute("visible", false);
   },
 
   tick() {
+    const d = this.data;
     const scene = this.el.sceneEl;
     if (!scene?.camera) return;
 
-    const d = this.data;
     const camPos = scene.camera.el.object3D.position;
 
-    const dist = (sphere) =>
+    const dist = sphere =>
       sphere ? camPos.distanceTo(sphere.object3D.position) : Infinity;
 
-    const distA = dist(d.asphere);
-    const distB = dist(d.bsphere);
-    const distC = dist(d.csphere);
-    const distD = dist(d.dsphere);
+    const Anear = dist(d.asphere) < d.distance;
+    const Bnear = dist(d.bsphere) < d.distance;
+    const Cnear = dist(d.csphere) < d.distance;
+    const Dnear = dist(d.dsphere) < d.distance;
 
     /***********************************************************
-     * A TRIGGER → hide A → show B only
+     * A TRIGGER → Wait until A finishes → then show B
      ***********************************************************/
-    if (d.asphere &&
-        !d.asphere.dataset.triggered &&
+    if (!d.asphere.dataset.triggered &&
         d.soundA?.components?.sound) {
 
-      const inA = distA < d.distance;
-
-      if (inA && !this.aInside) {
+      if (Anear && !this.aInside) {
 
         d.soundA.components.sound.playSound();
-
         setSphereOpacity(d.asphere, 0.25);
-        setTimeout(() => disableTrigger(d.asphere),
-          d.soundA.components.sound.duration * 1000
-        );
 
-        // SHOW ONLY B
-        d.bsphere.setAttribute("visible", true);
-        setSphereOpacity(d.bsphere, 1);
+        const duration = d.soundA.components.sound.duration * 1000;
 
-        this.bUnlocked = true;
+        setTimeout(() => {
+          disableTrigger(d.asphere);
+
+          // AFTER A FINISHES → Show B
+          d.bsphere.setAttribute("visible", true);
+          setSphereOpacity(d.bsphere, 1);
+
+          this.bUnlocked = true;
+        }, duration);
       }
 
-      this.aInside = inA;
+      this.aInside = Anear;
     }
 
 
     /***********************************************************
-     * B TRIGGER → hide B → show C + D (branching mode)
+     * B TRIGGER → Wait until B finishes → then show C & D
      ***********************************************************/
     if (this.bUnlocked &&
-        d.bsphere &&
         !d.bsphere.dataset.triggered &&
         d.soundB?.components?.sound) {
 
-      const inB = distB < d.distance;
-
-      if (inB && !this.bInside) {
+      if (Bnear && !this.bInside) {
 
         d.soundB.components.sound.playSound();
-
         setSphereOpacity(d.bsphere, 0.25);
-        setTimeout(() => disableTrigger(d.bsphere),
-          d.soundB.components.sound.duration * 1000
-        );
 
-        // SHOW BOTH C and D — the branch moment
-        d.csphere.setAttribute("visible", true);
-        d.dsphere.setAttribute("visible", true);
+        const duration = d.soundB.components.sound.duration * 1000;
 
-        setSphereOpacity(d.csphere, 1);
-        setSphereOpacity(d.dsphere, 1);
+        setTimeout(() => {
+          disableTrigger(d.bsphere);
 
-        this.cdUnlocked = true; // both available
+          // AFTER B FINISHES → SHOW C & D
+          d.csphere.setAttribute("visible", true);
+          d.dsphere.setAttribute("visible", true);
+
+          setSphereOpacity(d.csphere, 1);
+          setSphereOpacity(d.dsphere, 1);
+
+          this.cdUnlocked = true;
+
+        }, duration);
       }
 
-      this.bInside = inB;
+      this.bInside = Bnear;
     }
 
 
     /***********************************************************
-     * C TRIGGER → hide C ONLY (D still available)
+     * C TRIGGER → hide only after C finishes
      ***********************************************************/
     if (this.cdUnlocked &&
-        d.csphere &&
         !d.csphere.dataset.triggered &&
         d.soundC?.components?.sound) {
 
-      const inC = distC < d.distance;
-
-      if (inC && !this.cInside) {
+      if (Cnear && !this.cInside) {
 
         d.soundC.components.sound.playSound();
-
         setSphereOpacity(d.csphere, 0.25);
-        setTimeout(() => disableTrigger(d.csphere),
-          d.soundC.components.sound.duration * 1000
-        );
+
+        const duration = d.soundC.components.sound.duration * 1000;
+
+        setTimeout(() => disableTrigger(d.csphere), duration);
       }
 
-      this.cInside = inC;
+      this.cInside = Cnear;
     }
 
 
     /***********************************************************
-     * D TRIGGER → hide D ONLY (C might still be active)
+     * D TRIGGER → hide only after D finishes
      ***********************************************************/
     if (this.cdUnlocked &&
-        d.dsphere &&
         !d.dsphere.dataset.triggered &&
         d.soundD?.components?.sound) {
 
-      const inD = distD < d.distance;
-
-      if (inD && !this.dInside) {
+      if (Dnear && !this.dInside) {
 
         d.soundD.components.sound.playSound();
-
         setSphereOpacity(d.dsphere, 0.25);
-        setTimeout(() => disableTrigger(d.dsphere),
-          d.soundD.components.sound.duration * 1000
-        );
+
+        const duration = d.soundD.components.sound.duration * 1000;
+
+        setTimeout(() => disableTrigger(d.dsphere), duration);
       }
 
-      this.dInside = inD;
+      this.dInside = Dnear;
     }
   }
 });
 
 
 /***********************************************************
- *  AMBIENT PROXIMITY (unchanged)
+ * AMBIENT PROXIMITY (unchanged)
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
