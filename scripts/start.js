@@ -6,9 +6,8 @@ function isAndroid() {
   return /Android/i.test(navigator.userAgent);
 }
 
-window.onload = () => {
+window.addEventListener("DOMContentLoaded", () => {
 
-  // Prevent duplicate bindings
   if (window._startBound) return;
   window._startBound = true;
 
@@ -26,57 +25,47 @@ window.onload = () => {
     return;
   }
 
-  // ============================================================
-  // 🎯 AUDIO UNLOCK HELPER
-  // ============================================================
   async function unlockAudio() {
-    if (AFRAME.audioContext?.state === "suspended") {
-      await AFRAME.audioContext.resume();
-    }
+    const ctx = AFRAME.audioContext || new (window.AudioContext || window.webkitAudioContext)();
+    AFRAME.audioContext = ctx;
+    if (ctx.state === "suspended") await ctx.resume();
   }
 
-  // ============================================================
-  // 🎉 MOBILE START (iOS + Android)
-  // → Fade overlay → permanent blackout → play intro
-  // ============================================================
+  // ----------------------------------------------------
+  // MOBILE START
+  // ----------------------------------------------------
   startButton.addEventListener("click", async () => {
-
     await unlockAudio();
 
-    // Fade overlay to black
     overlay.style.transition = "opacity 0.8s ease";
     overlay.style.opacity = "0";
 
-    // Remove overlay after fade + activate blackout
+    // 🔥 Critical mobile fix
+    overlay.style.pointerEvents = "none";
+
     setTimeout(() => {
       overlay.style.display = "none";
-      blackout.classList.add("active");  // stays forever
+      blackout.classList.add("active");
     }, 800);
 
-    // Play intro once
-    if (intro?.components?.sound) {
-      intro.components.sound.playSound();
-    }
+    intro?.components?.sound?.playSound();
   });
 
-  // ============================================================
-  // 🎉 DESKTOP DEBUG MODE
-  // → Fade overlay → reveal scene → start normal mode
-  // ============================================================
+  // ----------------------------------------------------
+  // DESKTOP DEBUG
+  // ----------------------------------------------------
   debugButton.addEventListener("click", async () => {
-
     await unlockAudio();
 
-    // Fade overlay to black
     overlay.style.transition = "opacity 0.8s ease";
     overlay.style.opacity = "0";
 
-    // Hide after fade
+    overlay.style.pointerEvents = "none";
+
     setTimeout(() => {
       overlay.style.display = "none";
     }, 800);
 
-    // Desktop debug: enter AR (or stay in IMU mode)
     try {
       scene.setAttribute(
         "webxr",
@@ -87,7 +76,6 @@ window.onload = () => {
       console.warn("AR entry failed (expected on desktop):", e);
     }
 
-    // Play intro audio
-    intro.components.sound.playSound();
+    intro?.components?.sound?.playSound();
   });
-};
+});
