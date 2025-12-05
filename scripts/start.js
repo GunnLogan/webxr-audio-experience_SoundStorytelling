@@ -25,33 +25,37 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // AUDIO UNLOCK (iOS/Android requires user gesture)
+  // AUDIO UNLOCK (Important fix: never replace A-Frame's context)
   // ============================================================
   async function unlockAudio() {
-    const ctx = AFRAME.audioContext || new (window.AudioContext || window.webkitAudioContext)();
-    AFRAME.audioContext = ctx;
+    const ctx = AFRAME.audioContext;
 
-    if (ctx.state === "suspended") {
+    // If A-Frame already created a context, resume it.
+    if (ctx && ctx.state === "suspended") {
       await ctx.resume();
     }
+
+    // If ctx does NOT exist yet, A-Frame will auto-create it
+    // on the first playSound() call — no need to manually create one.
   }
 
   // ============================================================
-  // MOBILE START
+  // MOBILE START BUTTON
   // ============================================================
   startButton.addEventListener("click", async () => {
     await unlockAudio();
 
     // Fade overlay
     overlay.style.opacity = "0";
-    overlay.classList.add("hidden");
+    overlay.classList.add("hidden"); // Stops blocking all touches instantly
 
-    // After fade, hide fully & activate blackout
+    // Remove overlay & activate blackout after fade
     setTimeout(() => {
       overlay.style.display = "none";
       blackout.classList.add("active");
     }, 800);
 
+    // Play intro
     intro?.components?.sound?.playSound();
   });
 
@@ -68,17 +72,19 @@ window.addEventListener("DOMContentLoaded", () => {
       overlay.style.display = "none";
     }, 800);
 
-    // Try entering AR (will fail on desktop, which is fine)
+    // Desktop debug: try to enter AR if possible
     try {
       scene.setAttribute(
         "webxr",
         "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
       );
+
       await scene.enterAR();
     } catch (e) {
-      console.warn("Desktop — AR entry expected to fail:", e);
+      console.warn("Desktop: AR entry failed (expected):", e);
     }
 
+    // Play intro
     intro?.components?.sound?.playSound();
   });
 });
