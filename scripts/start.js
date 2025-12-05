@@ -17,6 +17,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const intro = document.querySelector("#intro");
   const scene = document.querySelector("a-scene");
+  const cam = document.querySelector("#camera");
 
   if (!startButton || !debugButton) {
     console.error("ERROR: Start or Debug button not found");
@@ -24,7 +25,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // AUDIO UNLOCK — resumes A-Frame’s existing AudioContext only
+  // AUDIO UNLOCK — resume A-Frame AudioContext only
   // ============================================================
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
@@ -34,13 +35,18 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // MOBILE AR ENTER (used ONLY for Start button)
+  // MOBILE AR ENTRY
   // ============================================================
   async function tryEnterARMobile() {
-    if (!navigator.xr || !navigator.xr.isSessionSupported) return;
+    if (!navigator.xr || !navigator.xr.isSessionSupported) {
+      console.warn("No WebXR API — cannot enter AR");
+      return;
+    }
 
     try {
       const supported = await navigator.xr.isSessionSupported("immersive-ar");
+      console.log("AR supported:", supported);
+
       if (!supported) return;
 
       scene.setAttribute(
@@ -49,27 +55,30 @@ window.addEventListener("DOMContentLoaded", () => {
       );
 
       await scene.enterAR();
-      console.log("AR entered successfully.");
+      console.log("Entered AR successfully");
     } catch (e) {
       console.warn("AR entry failed:", e);
     }
   }
 
   // ============================================================
-  // SAFE DESKTOP DEBUG — does NOT attempt AR
+  // DESKTOP DEBUG MODE — no AR, WASD enabled
   // ============================================================
-  async function debugMode() {
-    console.log("Desktop debug mode activated.");
-    // No AR attempt to avoid warnings
+  function activateDesktopMode() {
+    console.log("Desktop debug mode");
+
+    cam.setAttribute("position", "0 1.6 0");
+    cam.setAttribute("wasd-controls", "enabled:true");
+    cam.setAttribute("look-controls", "enabled:true");
   }
 
   // ============================================================
-  // START BUTTON — mobile AR startup
+  // START BUTTON — MOBILE MODE
   // ============================================================
   startButton.addEventListener("click", async () => {
     await unlockAudio();
 
-    // Fade overlay
+    // Hide overlay
     overlay.style.opacity = "0";
     overlay.classList.add("hidden");
 
@@ -78,8 +87,12 @@ window.addEventListener("DOMContentLoaded", () => {
       blackout.classList.add("active");
     }, 800);
 
-    // 🟢 Enter AR on mobile only
-    if (isIOS() || isAndroid()) {
+    // AR MODE for mobile
+    cam.removeAttribute("position");
+    cam.setAttribute("wasd-controls", "enabled:false");
+    cam.setAttribute("look-controls", "enabled:true");
+
+    if (isAndroid() || isIOS()) {
       await tryEnterARMobile();
     }
 
@@ -87,7 +100,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // ============================================================
-  // DEBUG BUTTON — desktop testing mode
+  // DEBUG BUTTON — DESKTOP MODE
   // ============================================================
   debugButton.addEventListener("click", async () => {
     await unlockAudio();
@@ -95,11 +108,9 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.opacity = "0";
     overlay.classList.add("hidden");
 
-    setTimeout(() => {
-      overlay.style.display = "none";
-    }, 800);
+    setTimeout(() => overlay.style.display = "none", 800);
 
-    await debugMode();
+    activateDesktopMode();
 
     intro?.components?.sound?.playSound();
   });
