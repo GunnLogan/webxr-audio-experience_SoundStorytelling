@@ -35,7 +35,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // MOBILE AR ENTRY
+  // MOBILE AR ENTRY (fixed hit-test blocking issue)
   // ============================================================
   async function tryEnterARMobile() {
     if (!navigator.xr || !navigator.xr.isSessionSupported) {
@@ -49,13 +49,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!supported) return;
 
+      // SAFE AR entry (hit-test optional)
       scene.setAttribute(
         "webxr",
-        "optionalFeatures: hit-test, local-floor; requiredFeatures: hit-test;"
+        "optionalFeatures: local-floor, hit-test;"
       );
 
       await scene.enterAR();
       console.log("Entered AR successfully");
+
+      // MUST REMOVE OVERLAY LAYERS FROM XR COMPOSITION
+      blackout.style.display = "none";
+      overlay.style.display = "none";
+
     } catch (e) {
       console.warn("AR entry failed:", e);
     }
@@ -73,21 +79,21 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // START BUTTON — MOBILE MODE
+  // START BUTTON — MOBILE AR MODE
   // ============================================================
   startButton.addEventListener("click", async () => {
     await unlockAudio();
 
-    // Hide overlay
+    // Fade overlay
     overlay.style.opacity = "0";
     overlay.classList.add("hidden");
 
     setTimeout(() => {
       overlay.style.display = "none";
-      blackout.classList.add("active");
+      blackout.style.display = "none";   // CRITICAL FIX
     }, 800);
 
-    // AR MODE for mobile
+    // AR MODE — no manual camera transform allowed
     cam.removeAttribute("position");
     cam.setAttribute("wasd-controls", "enabled:false");
     cam.setAttribute("look-controls", "enabled:true");
@@ -107,7 +113,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     overlay.style.opacity = "0";
     overlay.classList.add("hidden");
-
     setTimeout(() => overlay.style.display = "none", 800);
 
     activateDesktopMode();
