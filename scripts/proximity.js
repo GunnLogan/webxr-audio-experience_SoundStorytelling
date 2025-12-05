@@ -1,13 +1,10 @@
-/***********************************************************
- *  Utility: Set opacity of spheres
- ***********************************************************/
 function setSphereOpacity(sphere, opacity) {
   if (!sphere) return;
   sphere.setAttribute("material", `transparent:true; opacity:${opacity}`);
 }
 
 /***********************************************************
- *  CLUSTER PROXIMITY SYSTEM (A → B → C/D)
+ *  CLUSTER PROXIMITY (A → B → C/D)
  ***********************************************************/
 AFRAME.registerComponent("cluster-proximity", {
   schema: {
@@ -60,7 +57,7 @@ AFRAME.registerComponent("cluster-proximity", {
     const distC = dist(d.csphere);
     const distD = dist(d.dsphere);
 
-    /* ---------------- A TRIGGER ---------------- */
+    // A → unlock B
     if (d.asphere && d.soundA?.components?.sound) {
       const inA = distA < d.distance;
 
@@ -75,7 +72,6 @@ AFRAME.registerComponent("cluster-proximity", {
           setTimeout(() => d.asphere.setAttribute("visible", false),
             d.soundA.components.sound.duration * 1000);
 
-          // Unlock B
           this.bUnlocked = true;
           d.bsphere.setAttribute("visible", true);
           setSphereOpacity(d.bsphere, 1.0);
@@ -84,7 +80,7 @@ AFRAME.registerComponent("cluster-proximity", {
       this.aInside = inA;
     }
 
-    /* ---------------- B TRIGGER ---------------- */
+    // B → unlock C & D
     if (this.bUnlocked && d.bsphere && d.soundB?.components?.sound) {
       const inB = distB < d.distance;
 
@@ -108,7 +104,7 @@ AFRAME.registerComponent("cluster-proximity", {
       this.bInside = inB;
     }
 
-    /* ---------------- C TRIGGER ---------------- */
+    // C trigger
     if (this.cUnlocked && d.csphere && d.soundC?.components?.sound) {
       const inC = distC < d.distance;
 
@@ -122,7 +118,7 @@ AFRAME.registerComponent("cluster-proximity", {
       this.cInside = inC;
     }
 
-    /* ---------------- D TRIGGER ---------------- */
+    // D trigger
     if (this.dUnlocked && d.dsphere && d.soundD?.components?.sound) {
       const inD = distD < d.distance;
 
@@ -138,9 +134,8 @@ AFRAME.registerComponent("cluster-proximity", {
   }
 });
 
-
 /***********************************************************
- *  AMBIENT PROXIMITY (volume-only)
+ *  AMBIENT PROXIMITY — volume only, no autoplay
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
@@ -150,11 +145,9 @@ AFRAME.registerComponent("ambient-proximity", {
     plateau: { default: 0.5 }
   },
 
-  init() {
-    this.started = false;
-  },
-
   tick() {
+    if (!window._experienceStarted) return; // don't do anything before START
+
     const scene = this.el.sceneEl;
     if (!scene?.camera) return;
 
@@ -164,11 +157,6 @@ AFRAME.registerComponent("ambient-proximity", {
     const sound = ambientEl.components.sound;
     const camPos = scene.camera.el.object3D.position;
     const pos = this.el.object3D.position;
-
-    if (!this.started) {
-      sound.playSound();
-      this.started = true;
-    }
 
     const dist = camPos.distanceTo(pos);
     let vol = 0.5;
