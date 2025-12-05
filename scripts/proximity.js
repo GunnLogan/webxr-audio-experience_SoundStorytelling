@@ -10,18 +10,20 @@ async function waitForAudioContext() {
 
 /***********************************************************
  *  Utility: Create spatial mono HRTF panner for a sound node
+ *  NOTE: Always use the node's own AudioContext.
  ***********************************************************/
 async function makeSpatial(node) {
-  const ctx = await waitForAudioContext();
+  // 👇 Use the node's context if available, fall back to global
+  const ctx = node.context || (await waitForAudioContext());
   if (!ctx) return;
 
   const panner = ctx.createPanner();
   panner.panningModel = "HRTF";
 
-  // 🔥 NEW: LOUD SETTINGS (fix A/B/C/D quiet issue)
+  // Loud settings
   panner.distanceModel = "inverse";
-  panner.refDistance = 4;      // full volume until 4 meters
-  panner.rolloffFactor = 0.01; // almost no attenuation
+  panner.refDistance = 4;
+  panner.rolloffFactor = 0.01;
   panner.maxDistance = 100;
 
   node.panner = panner;
@@ -100,7 +102,8 @@ AFRAME.registerComponent("cluster-proximity", {
     // Spatialize cluster sounds
     [d.soundA, d.soundB, d.soundC, d.soundD].forEach((snd) => {
       if (!snd?.components?.sound) return;
-      snd.components.sound.pool.children.forEach(async (node) => {
+      const pool = snd.components.sound.pool?.children || [];
+      pool.forEach(async (node) => {
         await makeSpatial(node);
       });
     });
@@ -127,7 +130,6 @@ AFRAME.registerComponent("cluster-proximity", {
     const distC = dist(d.csphere);
     const distD = dist(d.dsphere);
 
-
     /* ============================================================
        A TRIGGER → unlock B
     ============================================================ */
@@ -138,7 +140,6 @@ AFRAME.registerComponent("cluster-proximity", {
         const last = window._lastATrigger;
 
         if (!this.Aused || last !== this.el.id) {
-
           d.soundA.components.sound.playSound();
 
           this.Aused = true;
@@ -165,7 +166,6 @@ AFRAME.registerComponent("cluster-proximity", {
 
       this.aInside = inA;
     }
-
 
     /* ============================================================
        B TRIGGER → unlock C and D
@@ -195,7 +195,6 @@ AFRAME.registerComponent("cluster-proximity", {
       this.bInside = inB;
     }
 
-
     /* ============================================================
        C TRIGGER
     ============================================================ */
@@ -213,7 +212,6 @@ AFRAME.registerComponent("cluster-proximity", {
 
       this.cInside = inC;
     }
-
 
     /* ============================================================
        D TRIGGER
@@ -237,7 +235,7 @@ AFRAME.registerComponent("cluster-proximity", {
 
 
 /***********************************************************
- *  AMBIENT SPATIAL PROXIMITY SYSTEM (UNCHANGED)
+ *  AMBIENT SPATIAL PROXIMITY SYSTEM
  ***********************************************************/
 AFRAME.registerComponent("ambient-proximity", {
   schema: {
@@ -254,7 +252,25 @@ AFRAME.registerComponent("ambient-proximity", {
     const ambientEl = this.data.ambient;
     if (!ambientEl) return;
 
-    const ctx = await waitForAudioContext();
+    // Wait for sound pool to exist
+    let tries = 0;
+    while (
+      !ambientEl.components.sound?.pool?.children?.length &&
+      tries < 200
+    ) {
+      await new Promise((r) => setTimeout(r, 20));
+      tries++;
+    }
+
+    const poolChildren = ambientEl.components.sound.pool?.children || [];
+    if (!poolChildren.length) {
+      console.warn("Ambient sound pool not ready.");
+      return;
+    }
+
+    // 👇 Use the ambient node's own audio context
+    const node = poolChildren[0];
+    const ctx = node.context || (await waitForAudioContext());
     if (!ctx) return;
 
     // Gain + Filter + Panner chain
@@ -275,22 +291,8 @@ AFRAME.registerComponent("ambient-proximity", {
     this.filter.connect(this.gainNode);
     this.gainNode.connect(ctx.destination);
 
-    // Wait for sound pool
-    let tries = 0;
-    while (
-      !ambientEl.components.sound?.pool?.children?.length &&
-      tries < 200
-    ) {
-      await new Promise((r) => setTimeout(r, 20));
-      tries++;
-    }
-
-    if (!ambientEl.components.sound.pool.children.length) {
-      console.warn("Ambient sound pool not ready.");
-      return;
-    }
-
-    ambientEl.components.sound.pool.children.forEach((n) => {
+    // Route all pool nodes through our panner
+    poolChildren.forEach((n) => {
       n.setNodeSource(this.panner);
     });
 
