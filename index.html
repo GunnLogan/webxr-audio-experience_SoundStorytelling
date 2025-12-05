@@ -30,8 +30,9 @@
 <div id="blackoutScreen"></div>
 
 <a-scene
+  xr="ar: true; referenceSpaceType: local-floor;"
+  webxr="optionalFeatures: local-floor, hit-test;"
   renderer="colorManagement:true"
-  xr="ar: true"
   vr-mode-ui="enabled:false"
   ar-mode-ui="enabled:false">
 
@@ -66,7 +67,6 @@
 
   <!-- =============================================================== -->
   <!-- AUDIO CLUSTERS (FRONT / BACK / LEFT / RIGHT)                     -->
-  <!-- Just like your original layout                                   -->
   <!-- =============================================================== -->
 
   <!-- FRONT CLUSTER -->
