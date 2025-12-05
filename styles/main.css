@@ -1,6 +1,3 @@
-/* ================================================
-   GLOBAL RESET
-   ================================================ */
 html, body {
   margin: 0;
   padding: 0;
@@ -11,9 +8,6 @@ html, body {
   font-family: sans-serif;
 }
 
-/* ================================================
-   START OVERLAY
-   ================================================ */
 #startOverlay {
   position: absolute;
   inset: 0;
@@ -60,9 +54,6 @@ html, body {
   color: black;
 }
 
-/* ================================================
-   BLACKOUT
-   ================================================ */
 #blackoutScreen {
   position: absolute;
   inset: 0;
@@ -80,7 +71,6 @@ html, body {
   pointer-events: auto;
 }
 
-/* A-SCENE FIX */
 a-scene {
   position: absolute !important;
   top: 0;
