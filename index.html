@@ -13,12 +13,12 @@
   <!-- A-FRAME MUST LOAD FIRST -->
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
-  <!-- YOUR SCRIPTS (defer, correct order) -->
+  <!-- PROJECT SCRIPTS -->
   <script defer src="scripts/path-manager.js"></script>
   <script defer src="scripts/proximity.js"></script>
   <script defer src="scripts/start.js"></script>
 
-  <!-- MAIN STYLES -->
+  <!-- STYLES -->
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 
@@ -31,13 +31,20 @@
     </div>
   </div>
 
-  <a-scene>
+  <!-- A-FRAME SCENE -->
+  <a-scene
+    xr="ar: true; referenceSpaceType: local-floor;"
+    webxr="optionalFeatures: local-floor, hit-test;"
+    renderer="colorManagement:true"
+    vr-mode-ui="enabled:false"
+    ar-mode-ui="enabled:false"
+  >
 
     <!-- CAMERA -->
     <a-entity
       id="camera"
       camera
-      look-controls
+      look-controls="enabled:true"
       wasd-controls="enabled:false"
     ></a-entity>
 
