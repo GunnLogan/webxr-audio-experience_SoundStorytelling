@@ -1,16 +1,6 @@
 const CHEST_Y = 1.3;
 const STEP = 0.5;
 
-/* =====================================================
-   PATH GRAPH — AUTHORITATIVE (UNCHANGED)
-   ===================================================== */
-
-const PATH_GRAPH = { /* ⬅️ UNCHANGED — omitted here for brevity */ };
-
-/* =====================================================
-   PATH MANAGER SYSTEM — FIXED
-   ===================================================== */
-
 AFRAME.registerSystem("path-manager", {
   init() {
     this.root = document.querySelector("#experienceRoot");
@@ -21,10 +11,6 @@ AFRAME.registerSystem("path-manager", {
     this.rootNodes = ["front_1", "back_1", "left_1", "right_1"];
     this.rootLocked = false;
   },
-
-  /* ===============================
-     INITIAL SPAWN
-     =============================== */
 
   spawnInitialDirections() {
     this.clearAll();
@@ -42,23 +28,50 @@ AFRAME.registerSystem("path-manager", {
     this.choiceGroups.clear();
   },
 
-  /* ===============================
-     FADE HELPERS
-     =============================== */
+  spawnNode(id, pos, parentId = null) {
+    if (this.active.has(id) || this.played.has(id)) return;
+    if (this.rootLocked && this.rootNodes.includes(id)) return;
 
-  fadeIn(el) {
-    el.object3D.scale.set(0.85, 0.85, 0.85);
+    const def = PATH_GRAPH[id];
+    if (!def) return;
 
-    // IMPORTANT: reassert transparency properly
-    el.setAttribute("material", {
-      opacity: 0,
+    const sphere = document.createElement("a-sphere");
+    sphere.setAttribute("radius", 0.25);
+    sphere.setAttribute("position", pos);
+
+    // ✅ TRANSPARENCY FIX (THIS IS THE KEY)
+    sphere.setAttribute("material", {
+      color: def.color,
+      opacity: 0.55,
       transparent: true,
       depthWrite: false
     });
 
+    sphere.setAttribute("soft-pulse", "");
+    if (parentId) sphere.setAttribute("guidance-glow", "");
+
+    sphere.setAttribute("path-node", { id, next: def.next });
+
+    this.root.appendChild(sphere);
+    this.active.set(id, sphere);
+
+    this.fadeIn(sphere);
+
+    if (parentId) {
+      if (!this.choiceGroups.has(parentId)) {
+        this.choiceGroups.set(parentId, []);
+      }
+      this.choiceGroups.get(parentId).push(id);
+    }
+  },
+
+  fadeIn(el) {
+    el.setAttribute("scale", "0.85 0.85 0.85");
+    el.setAttribute("material", "opacity", 0);
+
     el.setAttribute("animation__fadein_opacity", {
       property: "material.opacity",
-      to: 0.65,
+      to: 0.55,
       dur: 600,
       easing: "easeOutQuad"
     });
@@ -75,66 +88,19 @@ AFRAME.registerSystem("path-manager", {
     el.setAttribute("animation__fade", {
       property: "material.opacity",
       to: 0,
-      dur: 600,
+      dur: 500,
       easing: "easeOutQuad"
     });
 
     el.setAttribute("animation__scale", {
       property: "scale",
       to: "0.01 0.01 0.01",
-      dur: 600,
+      dur: 500,
       easing: "easeOutQuad"
     });
 
-    setTimeout(() => {
-      if (el.parentNode) el.remove();
-    }, 620);
+    setTimeout(() => el.remove(), 520);
   },
-
-  /* ===============================
-     NODE SPAWNING
-     =============================== */
-
-  spawnNode(id, pos, parentId = null) {
-    if (this.active.has(id) || this.played.has(id)) return;
-    if (this.rootLocked && this.rootNodes.includes(id)) return;
-
-    const def = PATH_GRAPH[id];
-    if (!def) return;
-
-    const sphere = document.createElement("a-sphere");
-    sphere.setAttribute("radius", "0.25");
-
-    // IMPORTANT: set position via object3D for bounce compatibility
-    sphere.object3D.position.set(pos.x, pos.y, pos.z);
-
-    sphere.setAttribute("material", {
-      color: def.color,
-      opacity: 0.65,
-      transparent: true,
-      depthWrite: false
-    });
-
-    sphere.setAttribute("soft-pulse", "");
-    if (parentId !== null) sphere.setAttribute("guidance-glow", "");
-    sphere.setAttribute("path-node", { id, next: def.next });
-
-    this.root.appendChild(sphere);
-    this.active.set(id, sphere);
-
-    this.fadeIn(sphere);
-
-    if (parentId) {
-      if (!this.choiceGroups.has(parentId)) {
-        this.choiceGroups.set(parentId, []);
-      }
-      this.choiceGroups.get(parentId).push(id);
-    }
-  },
-
-  /* ===============================
-     LOCKING
-     =============================== */
 
   lockRootPath(chosenId) {
     if (!this.rootNodes.includes(chosenId) || this.rootLocked) return;
@@ -164,10 +130,6 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  /* ===============================
-     NODE COMPLETION
-     =============================== */
-
   completeNode(id, nextIds, origin) {
     if (this.played.has(id)) return;
 
@@ -193,10 +155,6 @@ AFRAME.registerSystem("path-manager", {
     });
   },
 
-  /* ===============================
-     POSITIONING
-     =============================== */
-
   computePosition(origin, offset) {
     const cam = this.sceneEl.camera.el.object3D;
     const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
@@ -204,16 +162,10 @@ AFRAME.registerSystem("path-manager", {
 
     const p = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
     if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
-    if (offset.right) p.add(r.clone().multiplyScalar(offset.right));
-
+    if (offset.right)   p.add(r.clone().multiplyScalar(offset.right));
     return p;
   },
 
-  forward(m) {
-    return { x: 0, y: CHEST_Y, z: -m };
-  },
-
-  right(m) {
-    return { x: m, y: CHEST_Y, z: 0 };
-  }
+  forward(m) { return { x: 0, y: CHEST_Y, z: -m }; },
+  right(m)   { return { x: m, y: CHEST_Y, z: 0 }; }
 });
