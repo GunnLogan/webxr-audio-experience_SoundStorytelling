@@ -1,22 +1,41 @@
 /* =====================================================
-   SOFT PULSE (SUBTLE VISUAL GUIDANCE)
+   SOFT PULSE + GENTLE BOUNCE
    ===================================================== */
 
 AFRAME.registerComponent("soft-pulse", {
   schema: {
-    min: { type: "number", default: 0.96 },
-    max: { type: "number", default: 1.04 },
-    duration: { type: "number", default: 2400 }
+    scaleMin: { type: "number", default: 0.97 },
+    scaleMax: { type: "number", default: 1.03 },
+    bounce:   { type: "number", default: 0.025 }, // meters
+    duration: { type: "number", default: 2600 }
   },
 
   init() {
-    this.el.setAttribute("animation__pulse", {
+    const el = this.el;
+    const startY = el.object3D.position.y;
+
+    // Scale breathing
+    el.setAttribute("animation__pulse_scale", {
       property: "scale",
       dir: "alternate",
       dur: this.data.duration,
       easing: "easeInOutSine",
       loop: true,
-      to: `${this.data.max} ${this.data.max} ${this.data.max}`
+      to: `${this.data.scaleMax} ${this.data.scaleMax} ${this.data.scaleMax}`
+    });
+
+    // Gentle vertical bounce (absolute, safe)
+    el.setAttribute("animation__pulse_bounce", {
+      property: "position",
+      dir: "alternate",
+      dur: this.data.duration,
+      easing: "easeInOutSine",
+      loop: true,
+      to: {
+        x: el.object3D.position.x,
+        y: startY + this.data.bounce,
+        z: el.object3D.position.z
+      }
     });
   }
 });
@@ -27,7 +46,11 @@ AFRAME.registerComponent("soft-pulse", {
 
 AFRAME.registerComponent("guidance-glow", {
   init() {
-    this.el.setAttribute("material", "emissiveIntensity", 0.2);
+    // Ensure emissive channel exists without breaking color
+    this.el.setAttribute("material", {
+      emissive: "#ffffff",
+      emissiveIntensity: 0.2
+    });
 
     this.el.setAttribute("animation__glow", {
       property: "material.emissiveIntensity",
@@ -58,13 +81,12 @@ AFRAME.registerComponent("path-node", {
 
   init() {
     this.triggered = false;
-    this.consumed = false;
     this.system = this.el.sceneEl.systems["path-manager"];
 
-    // Always pulse (base visual presence)
+    // Base visual presence
     this.el.setAttribute("soft-pulse", "");
 
-    // Audio is optional (silent nodes allowed)
+    // Optional audio
     const audioSrc = `assets/audio/${this.data.id}.wav`;
     this.sound = null;
 
@@ -85,27 +107,26 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    if (this.triggered || this.consumed) return;
+    if (this.triggered) return;
 
     const camPos = this.el.sceneEl.camera.el.object3D.position;
     const nodePos = this.el.object3D.position;
 
     if (camPos.distanceTo(nodePos) < 0.75) {
       this.triggered = true;
-      this.consumed = true;
 
-      // Remove glow immediately (this node is no longer a target)
+      // This node is no longer a target
       this.el.removeAttribute("guidance-glow");
 
       if (this.system) {
-        // 🔒 GLOBAL root lock
+        // Global root lock
         this.system.lockRootPath?.(this.data.id);
 
-        // 🔒 LOCAL sibling lock
+        // Local sibling lock
         this.system.lockChoice?.(this.data.id);
       }
 
-      // Hide visual immediately (fade handled elsewhere)
+      // Hide visual immediately (fade handled in path-manager)
       this.el.setAttribute("visible", "false");
 
       if (this.sound && this.sound.components?.sound) {
