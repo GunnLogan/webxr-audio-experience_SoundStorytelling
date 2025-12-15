@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -17,7 +18,7 @@ html, body {
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.9);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -38,55 +39,37 @@ html, body {
 #startButtons {
   display: flex;
   flex-direction: column;
-  gap: 24px;
   align-items: center;
+  gap: 24px;
 }
 
 /* ===============================
-   BUTTONS (SHARED)
+   START BUTTON
    =============================== */
 
-#startButton,
-#debugButton {
+#startButton {
   width: min(80vw, 320px);
   padding: 22px 36px;
   font-size: 1.5rem;
   font-weight: 600;
+  letter-spacing: 0.04em;
   border: none;
   border-radius: 16px;
   cursor: pointer;
-  position: relative;
+  background: white;
+  color: black;
   z-index: 10000;
-  letter-spacing: 0.04em;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
-/* ===============================
-   PRIMARY / SECONDARY STYLES
-   =============================== */
-
-#startButton {
-  background: white;
-  color: black;
-}
-
-#debugButton {
-  background: #2c2c2c;
-  color: white;
-  border: 1px solid #555;
-}
-
-/* ===============================
-   PRESS FEEDBACK
-   =============================== */
-
-button:active {
+/* Press feedback */
+#startButton:active {
   transform: scale(0.96);
   opacity: 0.85;
 }
 
 /* ===============================
-   BLACKOUT SCREEN (UNCHANGED)
+   BLACKOUT SCREEN (SAFE TO KEEP)
    =============================== */
 
 #blackoutScreen {
@@ -107,7 +90,7 @@ button:active {
 }
 
 /* ===============================
-   A-SCENE FULLSCREEN
+   A-FRAME SCENE FULLSCREEN
    =============================== */
 
 a-scene {
