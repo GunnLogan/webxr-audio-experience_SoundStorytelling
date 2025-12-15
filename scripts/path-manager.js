@@ -88,4 +88,130 @@ AFRAME.registerSystem("path-manager", {
   clearAll() {
     this.root.innerHTML = "";
     this.active.clear();
-    this.choiceGroups
+    this.choiceGroups.clear();
+  },
+
+  spawnNode(id, pos, parentId = null) {
+    if (this.active.has(id) || this.played.has(id)) return;
+    if (this.rootLocked && this.rootNodes.includes(id)) return;
+
+    const def = PATH_GRAPH[id];
+    if (!def) return;
+
+    const el = document.createElement("a-sphere");
+    el.setAttribute("radius", 0.25);
+    el.setAttribute("position", pos);
+    el.setAttribute("material", {
+      color: def.color,
+      opacity: 0.55,
+      transparent: true,
+      depthWrite: false
+    });
+
+    el.setAttribute("soft-pulse", "");
+    if (parentId) el.setAttribute("guidance-glow", "");
+    el.setAttribute("path-node", { id, next: def.next });
+
+    this.root.appendChild(el);
+    this.active.set(id, el);
+    this.fadeIn(el);
+
+    if (parentId) {
+      if (!this.choiceGroups.has(parentId)) this.choiceGroups.set(parentId, []);
+      this.choiceGroups.get(parentId).push(id);
+    }
+  },
+
+  fadeIn(el) {
+    el.setAttribute("scale", "0.85 0.85 0.85");
+    el.setAttribute("material", "opacity", 0);
+    el.setAttribute("animation__fadein", {
+      property: "material.opacity",
+      to: 0.55,
+      dur: 600,
+      easing: "easeOutQuad"
+    });
+    el.setAttribute("animation__scalein", {
+      property: "scale",
+      to: "1 1 1",
+      dur: 600,
+      easing: "easeOutQuad"
+    });
+  },
+
+  fadeOutAndRemove(el) {
+    el.setAttribute("animation__fadeout", {
+      property: "material.opacity",
+      to: 0,
+      dur: 500,
+      easing: "easeOutQuad"
+    });
+    el.setAttribute("animation__scaleout", {
+      property: "scale",
+      to: "0.01 0.01 0.01",
+      dur: 500,
+      easing: "easeOutQuad"
+    });
+    setTimeout(() => el.remove(), 520);
+  },
+
+  lockRootPath(chosenId) {
+    if (!this.rootNodes.includes(chosenId) || this.rootLocked) return;
+    this.rootLocked = true;
+    this.rootNodes.forEach(id => {
+      if (id !== chosenId && this.active.has(id)) {
+        this.fadeOutAndRemove(this.active.get(id));
+        this.active.delete(id);
+      }
+    });
+  },
+
+  lockChoice(chosenId) {
+    for (const [parent, children] of this.choiceGroups.entries()) {
+      if (!children.includes(chosenId)) continue;
+      children.forEach(id => {
+        if (id !== chosenId && this.active.has(id)) {
+          this.fadeOutAndRemove(this.active.get(id));
+          this.active.delete(id);
+        }
+      });
+      this.choiceGroups.delete(parent);
+      break;
+    }
+  },
+
+  completeNode(id, nextIds, origin) {
+    if (this.played.has(id)) return;
+    this.played.add(id);
+    this.active.delete(id);
+    this.lockRootPath(id);
+
+    if (id === "explore_more") {
+      this.played.clear();
+      this.spawnInitialDirections();
+      return;
+    }
+
+    nextIds.forEach(nextId => {
+      const def = PATH_GRAPH[nextId];
+      if (!def) return;
+      const pos = def.offset.center
+        ? new THREE.Vector3(0, CHEST_Y, 0)
+        : this.computePosition(origin, def.offset);
+      this.spawnNode(nextId, pos, id);
+    });
+  },
+
+  computePosition(origin, offset) {
+    const cam = this.sceneEl.camera.el.object3D;
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    const p = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
+    if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
+    if (offset.right) p.add(r.clone().multiplyScalar(offset.right));
+    return p;
+  },
+
+  forward(m) { return { x: 0, y: CHEST_Y, z: -m }; },
+  right(m) { return { x: m, y: CHEST_Y, z: 0 }; }
+});
