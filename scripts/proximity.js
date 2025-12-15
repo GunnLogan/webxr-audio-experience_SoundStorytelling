@@ -35,15 +35,13 @@ AFRAME.registerComponent("soft-pulse", {
 });
 
 /* =====================================================
-   GUIDANCE GLOW
+   GUIDANCE GLOW (DOES NOT BREAK TRANSPARENCY)
    ===================================================== */
 
 AFRAME.registerComponent("guidance-glow", {
   init() {
-    this.el.setAttribute("material", {
-      emissive: "#ffffff",
-      emissiveIntensity: 0.25
-    });
+    this.el.setAttribute("material", "emissive", "#ffffff");
+    this.el.setAttribute("material", "emissiveIntensity", 0.25);
 
     this.el.setAttribute("animation__glow", {
       property: "material.emissiveIntensity",
@@ -63,7 +61,7 @@ AFRAME.registerComponent("guidance-glow", {
 });
 
 /* =====================================================
-   PATH NODE
+   PATH NODE (explore_more is the ONLY silent node)
    ===================================================== */
 
 AFRAME.registerComponent("path-node", {
@@ -75,9 +73,12 @@ AFRAME.registerComponent("path-node", {
   init() {
     this.triggered = false;
     this.system = this.el.sceneEl.systems["path-manager"];
+    this.sound = null;
+
+    // 🔇 explore_more is intentionally silent
+    if (this.data.id === "explore_more") return;
 
     const audioSrc = `assets/audio/${this.data.id}.wav`;
-    this.sound = null;
 
     fetch(audioSrc, { method: "HEAD" })
       .then(r => {
