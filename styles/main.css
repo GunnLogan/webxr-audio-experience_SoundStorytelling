@@ -13,6 +13,18 @@ body {
    START OVERLAY
    =============================== */
 
+.a-enter-vr {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.6s ease;
+}
+
+/* Extra safety for some browsers */
+.a-enter-vr-button {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 #startOverlay {
   position: fixed;
   inset: 0;
