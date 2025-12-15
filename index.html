@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no"
+  />
   <title>WebXR Audio Experience</title>
 
   <link rel="icon" href="data:," />
@@ -14,18 +17,23 @@
   <script defer src="scripts/path-manager.js"></script>
   <script defer src="scripts/proximity.js"></script>
   <script defer src="scripts/start.js"></script>
+
+  <!-- MAIN STYLES -->
+  <link rel="stylesheet" href="styles/main.css" />
 </head>
 
 <body>
 
-  <!-- START OVERLAY (REQUIRED BY start.js) -->
+  <!-- START OVERLAY -->
   <div id="startOverlay">
-    <button id="startButton">START</button>
-    <button id="debugButton">DEBUG</button>
+    <div id="startButtons">
+      <button id="startButton">START</button>
+    </div>
   </div>
 
   <a-scene>
 
+    <!-- CAMERA -->
     <a-entity
       id="camera"
       camera
@@ -33,11 +41,13 @@
       wasd-controls="enabled:false"
     ></a-entity>
 
+    <!-- INTRO AUDIO -->
     <a-entity
       id="intro"
       sound="src:url(assets/audio/intro.wav); autoplay:false; positional:false"
     ></a-entity>
 
+    <!-- EXPERIENCE ROOT -->
     <a-entity id="experienceRoot"></a-entity>
 
   </a-scene>
