@@ -15,10 +15,15 @@ window.addEventListener("DOMContentLoaded", () => {
   let debugMode = false;
   let longPressTimer = null;
 
+  // 🌍 GLOBAL DEBUG FLAG (shared with proximity.js)
+  window.__DEBUG_MODE__ = false;
+
   /* ===============================
-     WASD CONTROL HELPER
+     WASD CONTROL HELPER (DEBUG ONLY)
      =============================== */
   function setWASDEnabled(enabled) {
+    if (!window.__DEBUG_MODE__) return; // 🔒 desktop debug only
+
     camera.setAttribute("wasd-controls", {
       enabled,
       fly: true,
@@ -79,10 +84,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
     camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
+
     setWASDEnabled(true);
 
     window.addEventListener("keydown", (e) => {
-      if (!debugMode) return;
+      if (!window.__DEBUG_MODE__) return;
       const pos = camera.object3D.position;
       if (e.code === "KeyQ") pos.y += 0.1;
       if (e.code === "KeyE") pos.y -= 0.1;
@@ -107,18 +113,17 @@ window.addEventListener("DOMContentLoaded", () => {
       enableDebugControls();
     } else {
       debugSky?.setAttribute("visible", "false");
-      setWASDEnabled(false);
     }
 
     if (!introPlayed) {
       introPlayed = true;
 
-      // 🔒 Disable movement during intro
+      // 🔒 Freeze WASD only if debug
       setWASDEnabled(false);
-      intro.components.sound.playSound();
 
+      intro.components.sound.playSound();
       intro.addEventListener("sound-ended", () => {
-        setWASDEnabled(debugMode);
+        setWASDEnabled(true);
         scene.systems["path-manager"]?.spawnInitialDirections();
       }, { once: true });
     }
@@ -129,12 +134,17 @@ window.addEventListener("DOMContentLoaded", () => {
      =============================== */
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
+    window.__DEBUG_MODE__ = debugMode;
+
     await unlockAudio();
     startExperience();
   });
 
   startBtn.addEventListener("touchstart", () => {
-    longPressTimer = setTimeout(() => (debugMode = true), 800);
+    longPressTimer = setTimeout(() => {
+      debugMode = true;
+      window.__DEBUG_MODE__ = true;
+    }, 800);
   });
 
   startBtn.addEventListener("touchend", async () => {
