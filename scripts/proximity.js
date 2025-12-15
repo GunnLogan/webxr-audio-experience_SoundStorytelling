@@ -1,3 +1,30 @@
+/* =====================================================
+   SOFT PULSE (SUBTLE VISUAL GUIDANCE)
+   ===================================================== */
+
+AFRAME.registerComponent("soft-pulse", {
+  schema: {
+    min: { type: "number", default: 0.96 },
+    max: { type: "number", default: 1.04 },
+    duration: { type: "number", default: 2400 }
+  },
+
+  init() {
+    this.el.setAttribute("animation__pulse", {
+      property: "scale",
+      dir: "alternate",
+      dur: this.data.duration,
+      easing: "easeInOutSine",
+      loop: true,
+      to: `${this.data.max} ${this.data.max} ${this.data.max}`
+    });
+  }
+});
+
+/* =====================================================
+   PATH NODE (PROXIMITY + AUDIO)
+   ===================================================== */
+
 AFRAME.registerComponent("path-node", {
   schema: {
     id: { type: "string" },
@@ -8,6 +35,9 @@ AFRAME.registerComponent("path-node", {
     this.triggered = false;
     this.consumed = false;
     this.system = this.el.sceneEl.systems["path-manager"];
+
+    // Apply subtle pulse (visual only)
+    this.el.setAttribute("soft-pulse", "");
 
     // Audio is optional (silent nodes allowed)
     const audioSrc = `assets/audio/${this.data.id}.wav`;
@@ -32,19 +62,22 @@ AFRAME.registerComponent("path-node", {
   tick() {
     if (this.triggered || this.consumed) return;
 
-    const cam = this.el.sceneEl.camera.el.object3D.position;
-    const pos = this.el.object3D.position;
+    const camPos = this.el.sceneEl.camera.el.object3D.position;
+    const nodePos = this.el.object3D.position;
 
-    if (cam.distanceTo(pos) < 0.75) {
+    if (camPos.distanceTo(nodePos) < 0.75) {
       this.triggered = true;
       this.consumed = true;
 
-      // 🔒 LOCK THE CHOICE IMMEDIATELY
-      this.system.lockChoice(this.data.id);
+      // 🔒 Lock sibling choices immediately
+      if (this.system && this.system.lockChoice) {
+        this.system.lockChoice(this.data.id);
+      }
 
+      // Hide visual immediately (audio may continue)
       this.el.setAttribute("visible", "false");
 
-      if (this.sound) {
+      if (this.sound && this.sound.components && this.sound.components.sound) {
         this.sound.components.sound.playSound();
         this.sound.addEventListener(
           "sound-ended",
@@ -58,11 +91,13 @@ AFRAME.registerComponent("path-node", {
   },
 
   finish() {
-    this.system.completeNode(
-      this.data.id,
-      this.data.next,
-      this.el.object3D.position
-    );
+    if (this.system) {
+      this.system.completeNode(
+        this.data.id,
+        this.data.next,
+        this.el.object3D.position
+      );
+    }
     this.el.remove();
   }
 });
