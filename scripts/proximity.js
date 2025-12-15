@@ -36,7 +36,7 @@ AFRAME.registerComponent("path-node", {
     this.consumed = false;
     this.system = this.el.sceneEl.systems["path-manager"];
 
-    // Apply subtle pulse (visual only)
+    // Visual pulse
     this.el.setAttribute("soft-pulse", "");
 
     // Audio is optional (silent nodes allowed)
@@ -69,15 +69,22 @@ AFRAME.registerComponent("path-node", {
       this.triggered = true;
       this.consumed = true;
 
-      // 🔒 Lock sibling choices immediately
-      if (this.system && this.system.lockChoice) {
-        this.system.lockChoice(this.data.id);
+      if (this.system) {
+        // 🔒 GLOBAL root lock (front_1, back_1, left_1, right_1)
+        if (this.system.lockRootPath) {
+          this.system.lockRootPath(this.data.id);
+        }
+
+        // 🔒 LOCAL sibling lock (branching)
+        if (this.system.lockChoice) {
+          this.system.lockChoice(this.data.id);
+        }
       }
 
-      // Hide visual immediately (audio may continue)
+      // Hide visual immediately
       this.el.setAttribute("visible", "false");
 
-      if (this.sound && this.sound.components && this.sound.components.sound) {
+      if (this.sound && this.sound.components?.sound) {
         this.sound.components.sound.playSound();
         this.sound.addEventListener(
           "sound-ended",
