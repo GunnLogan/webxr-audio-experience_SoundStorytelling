@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap");
+
 html,
 body {
   margin: 0;
@@ -7,6 +9,30 @@ body {
   height: 100%;
   background: black;
   font-family: sans-serif;
+}
+/* ===============================
+   START TITLE (1960s SWEDISH FEEL)
+   =============================== */
+
+#startTitle {
+  text-align: center;
+  margin-bottom: 32px;
+  color: white;
+  font-family: "EB Garamond", serif;
+}
+
+.title-main {
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.title-sub {
+  margin-top: 6px;
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
 }
 
 /* ===============================
