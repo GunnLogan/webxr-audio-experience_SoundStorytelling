@@ -17,13 +17,25 @@ body {
 
 #startTitle.placard {
   text-align: center;
+
+  /* Mobile breathing room + desktop restraint */
+  max-width: 520px;
+  margin: 0 24px 36px 24px;
   padding: 24px 28px;
-  margin-bottom: 36px;
+
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(0, 0, 0, 0.35);
   color: #f2f2f2;
   font-family: "EB Garamond", serif;
-  transition: opacity 1.2s ease;
+
+  /* Fade behavior */
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+/* Fade in while overlay is visible */
+#startOverlay:not(.hidden) #startTitle {
+  opacity: 1;
 }
 
 .title-main {
