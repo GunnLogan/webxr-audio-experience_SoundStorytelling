@@ -15,7 +15,7 @@ window.addEventListener("DOMContentLoaded", () => {
   let longPressTimer = null;
 
   // --------------------------------------------------
-  // AUDIO UNLOCK (mobile safe)
+  // AUDIO UNLOCK (required on mobile)
   // --------------------------------------------------
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
@@ -29,7 +29,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // --------------------------------------------------
-  // DEBUG TOAST (auto-fade)
+  // DEBUG TOAST
   // --------------------------------------------------
   function showDebugToast() {
     const toast = document.createElement("div");
@@ -50,9 +50,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     document.body.appendChild(toast);
 
-    requestAnimationFrame(() => {
-      toast.style.opacity = "1";
-    });
+    requestAnimationFrame(() => (toast.style.opacity = "1"));
 
     setTimeout(() => {
       toast.style.opacity = "0";
@@ -75,7 +73,6 @@ window.addEventListener("DOMContentLoaded", () => {
     // Q / E vertical movement
     window.addEventListener("keydown", (e) => {
       if (!debugMode) return;
-
       const pos = camera.object3D.position;
       if (e.code === "KeyQ") pos.y += 0.1;
       if (e.code === "KeyE") pos.y -= 0.1;
@@ -87,7 +84,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // --------------------------------------------------
   // START EXPERIENCE
   // --------------------------------------------------
-  function startExperience() {
+  async function startExperience() {
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
 
@@ -95,6 +92,16 @@ window.addEventListener("DOMContentLoaded", () => {
       overlay.style.display = "none";
     }, 600);
 
+    // --- ENTER AR ON MOBILE ---
+    if (!debugMode && scene.enterAR) {
+      try {
+        await scene.enterAR();
+      } catch (e) {
+        console.warn("AR entry failed", e);
+      }
+    }
+
+    // --- CONTROLS ---
     if (debugMode) {
       enableDebugControls();
     } else {
@@ -102,6 +109,7 @@ window.addEventListener("DOMContentLoaded", () => {
       camera.setAttribute("look-controls", "enabled:true");
     }
 
+    // --- INTRO AUDIO ---
     if (!introPlayed) {
       introPlayed = true;
       intro.components.sound.playSound();
