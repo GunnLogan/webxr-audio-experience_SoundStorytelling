@@ -1,4 +1,18 @@
 /* =====================================================
+   WASD CONTROL HELPER (SHARED)
+   ===================================================== */
+function setWASDEnabled(enabled) {
+  const camera = document.querySelector("#camera");
+  if (!camera) return;
+
+  camera.setAttribute("wasd-controls", {
+    enabled,
+    fly: true,
+    acceleration: 35
+  });
+}
+
+/* =====================================================
    SOFT PULSE + GENTLE BOUNCE
    ===================================================== */
 
@@ -12,7 +26,7 @@ AFRAME.registerComponent("soft-pulse", {
 
   init() {
     const el = this.el;
-    const baseY = el.object3D.position.y;
+    const y = el.object3D.position.y;
 
     el.setAttribute("animation__scale", {
       property: "scale",
@@ -29,13 +43,13 @@ AFRAME.registerComponent("soft-pulse", {
       dur: this.data.duration,
       easing: "easeInOutSine",
       loop: true,
-      to: `${el.object3D.position.x} ${baseY + this.data.bounce} ${el.object3D.position.z}`
+      to: `${el.object3D.position.x} ${y + this.data.bounce} ${el.object3D.position.z}`
     });
   }
 });
 
 /* =====================================================
-   GUIDANCE GLOW (DOES NOT BREAK TRANSPARENCY)
+   GUIDANCE GLOW (SAFE FOR TRANSPARENCY)
    ===================================================== */
 
 AFRAME.registerComponent("guidance-glow", {
@@ -61,7 +75,7 @@ AFRAME.registerComponent("guidance-glow", {
 });
 
 /* =====================================================
-   PATH NODE (explore_more is the ONLY silent node)
+   PATH NODE (explore_more is ONLY silent node)
    ===================================================== */
 
 AFRAME.registerComponent("path-node", {
@@ -75,7 +89,6 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
 
-    // 🔇 explore_more is intentionally silent
     if (this.data.id === "explore_more") return;
 
     const audioSrc = `assets/audio/${this.data.id}.wav`;
@@ -110,8 +123,14 @@ AFRAME.registerComponent("path-node", {
       this.el.setAttribute("visible", false);
 
       if (this.sound?.components?.sound) {
+        // 🔒 Freeze movement during audio
+        setWASDEnabled(false);
+
         this.sound.components.sound.playSound();
-        this.sound.addEventListener("sound-ended", () => this.finish(), { once: true });
+        this.sound.addEventListener("sound-ended", () => {
+          setWASDEnabled(true);
+          this.finish();
+        }, { once: true });
       } else {
         this.finish();
       }
@@ -119,7 +138,11 @@ AFRAME.registerComponent("path-node", {
   },
 
   finish() {
-    this.system?.completeNode(this.data.id, this.data.next, this.el.object3D.position);
+    this.system?.completeNode(
+      this.data.id,
+      this.data.next,
+      this.el.object3D.position
+    );
     this.el.remove();
   }
 });
