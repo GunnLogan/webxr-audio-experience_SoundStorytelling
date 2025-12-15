@@ -4,6 +4,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const intro = document.querySelector("#intro");
   const scene = document.querySelector("a-scene");
   const camera = document.querySelector("#camera");
+  const debugSky = document.querySelector("#debugSky");
 
   if (!startBtn || !overlay || !intro || !scene || !camera) {
     console.error("Start.js: required elements missing");
@@ -62,6 +63,11 @@ window.addEventListener("DOMContentLoaded", () => {
   // ENABLE DESKTOP DEBUG CONTROLS
   // --------------------------------------------------
   function enableDebugControls() {
+    // Enable grey sky in desktop debug
+    if (debugSky) {
+      debugSky.setAttribute("visible", "true");
+    }
+
     camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
     camera.setAttribute("wasd-controls", {
@@ -105,6 +111,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (debugMode) {
       enableDebugControls();
     } else {
+      // Ensure sky is hidden in AR / normal mode
+      if (debugSky) {
+        debugSky.setAttribute("visible", "false");
+      }
+
       camera.setAttribute("wasd-controls", "enabled:false");
       camera.setAttribute("look-controls", "enabled:true");
     }
