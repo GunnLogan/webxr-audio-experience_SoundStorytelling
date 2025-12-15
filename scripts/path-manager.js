@@ -2,15 +2,11 @@ const CHEST_Y = 1.3;
 const STEP = 0.5;
 
 /* =====================================================
-   PATH GRAPH — AUTHORITATIVE
+   PATH GRAPH — AUTHORITATIVE (UNCHANGED)
    ===================================================== */
 
 const PATH_GRAPH = {
-
-  /* =========================
-     FRONT — WHITE
-     ========================= */
-
+  /* FRONT — WHITE */
   front_1: { color: "#ffffff", offset: { forward: STEP }, next: ["front_2"] },
   front_2: { color: "#ffffff", offset: { forward: STEP }, next: ["front_3a", "front_3b"] },
 
@@ -25,10 +21,7 @@ const PATH_GRAPH = {
   front_5a: { color: "#ffffff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
   front_5b: { color: "#ffffff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* =========================
-     BACK — BLACK
-     ========================= */
-
+  /* BACK — BLACK */
   back_1: { color: "#000000", offset: { forward: STEP }, next: ["back_2"] },
   back_2: { color: "#000000", offset: { forward: STEP }, next: ["back_3a", "back_3b"] },
 
@@ -43,10 +36,7 @@ const PATH_GRAPH = {
   back_5a: { color: "#000000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
   back_5b: { color: "#000000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* =========================
-     LEFT — RED (detour logic)
-     ========================= */
-
+  /* LEFT — RED */
   left_1: { color: "#ff0000", offset: { forward: STEP }, next: ["left_2"] },
   left_2: { color: "#ff0000", offset: { forward: STEP }, next: ["left_3a", "left_3b"] },
 
@@ -67,10 +57,7 @@ const PATH_GRAPH = {
   left_4a: { color: "#ff0000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
   left_4b: { color: "#ff0000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* =========================
-     RIGHT — BLUE (merge logic)
-     ========================= */
-
+  /* RIGHT — BLUE */
   right_1: { color: "#0066ff", offset: { forward: STEP }, next: ["right_2"] },
   right_2: { color: "#0066ff", offset: { forward: STEP }, next: ["right_3a", "right_3b"] },
 
@@ -90,41 +77,17 @@ const PATH_GRAPH = {
 
   right_7: { color: "#0066ff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* =========================
-     END CHOICES (GLOBAL)
-     ========================= */
+  /* END CHOICES */
+  end_a: { color: "#88ffee", offset: { forward: STEP, right: STEP }, next: ["explore_more"] },
+  end_b: { color: "#ff4444", offset: { forward: STEP, right: -STEP }, next: ["bomb_end"] },
 
-  end_a: {
-    color: "#88ffee",
-    offset: { forward: STEP, right: STEP },
-    next: ["explore_more"]
-  },
-
-  end_b: {
-    color: "#ff4444",
-    offset: { forward: STEP, right: -STEP },
-    next: ["bomb_end"]
-  },
-
-  /* =========================
-     CENTER OUTCOMES (GLOBAL)
-     ========================= */
-
-  explore_more: {
-    color: "#ffffff",
-    offset: { center: true },
-    next: [] // silent restart trigger
-  },
-
-  bomb_end: {
-    color: "#000000",
-    offset: { center: true },
-    next: [] // final ending
-  }
+  /* CENTER */
+  explore_more: { color: "#ffffff", offset: { center: true }, next: [] },
+  bomb_end: { color: "#000000", offset: { center: true }, next: [] }
 };
 
 /* =====================================================
-   PATH MANAGER SYSTEM
+   PATH MANAGER SYSTEM — WITH CHOICE LOCKING
    ===================================================== */
 
 AFRAME.registerSystem("path-manager", {
@@ -132,6 +95,7 @@ AFRAME.registerSystem("path-manager", {
     this.root = document.querySelector("#experienceRoot");
     this.active = new Map();
     this.played = new Set();
+    this.choiceGroups = new Map(); // parentId → [childIds]
   },
 
   spawnInitialDirections() {
@@ -145,9 +109,10 @@ AFRAME.registerSystem("path-manager", {
   clearAll() {
     this.root.innerHTML = "";
     this.active.clear();
+    this.choiceGroups.clear();
   },
 
-  spawnNode(id, pos) {
+  spawnNode(id, pos, parentId = null) {
     if (this.active.has(id) || this.played.has(id)) return;
 
     const def = PATH_GRAPH[id];
@@ -161,13 +126,38 @@ AFRAME.registerSystem("path-manager", {
 
     this.root.appendChild(sphere);
     this.active.set(id, sphere);
+
+    if (parentId) {
+      if (!this.choiceGroups.has(parentId)) {
+        this.choiceGroups.set(parentId, []);
+      }
+      this.choiceGroups.get(parentId).push(id);
+    }
+  },
+
+  /* 🔒 CALLED BY proximity.js */
+  lockChoice(chosenId) {
+    for (const [parent, children] of this.choiceGroups.entries()) {
+      if (!children.includes(chosenId)) continue;
+
+      children.forEach(id => {
+        if (id !== chosenId && this.active.has(id)) {
+          this.active.get(id).remove();
+          this.active.delete(id);
+        }
+      });
+
+      this.choiceGroups.delete(parent);
+      break;
+    }
   },
 
   completeNode(id, nextIds, origin) {
+    if (this.played.has(id)) return;
+
     this.played.add(id);
     this.active.delete(id);
 
-    /* -------- EXPLORE MORE (RESTART) -------- */
     if (id === "explore_more") {
       this.clearAll();
       this.spawnInitialDirections();
@@ -185,18 +175,18 @@ AFRAME.registerSystem("path-manager", {
         pos = this.computePosition(origin, def.offset);
       }
 
-      this.spawnNode(nextId, pos);
+      this.spawnNode(nextId, pos, id);
     });
   },
 
   computePosition(origin, offset) {
     const cam = this.sceneEl.camera.el.object3D;
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
 
     const p = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
-    if (offset.forward) p.add(forward.multiplyScalar(offset.forward));
-    if (offset.right)   p.add(right.multiplyScalar(offset.right));
+    if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
+    if (offset.right)   p.add(r.clone().multiplyScalar(offset.right));
 
     return p;
   },
