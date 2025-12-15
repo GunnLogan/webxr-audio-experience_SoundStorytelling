@@ -22,6 +22,31 @@ AFRAME.registerComponent("soft-pulse", {
 });
 
 /* =====================================================
+   GUIDANCE GLOW (NEXT STEP ONLY)
+   ===================================================== */
+
+AFRAME.registerComponent("guidance-glow", {
+  init() {
+    this.el.setAttribute("material", "emissiveIntensity", 0.2);
+
+    this.el.setAttribute("animation__glow", {
+      property: "material.emissiveIntensity",
+      from: 0.2,
+      to: 0.6,
+      dir: "alternate",
+      dur: 1800,
+      easing: "easeInOutSine",
+      loop: true
+    });
+  },
+
+  remove() {
+    this.el.removeAttribute("animation__glow");
+    this.el.setAttribute("material", "emissiveIntensity", 0);
+  }
+});
+
+/* =====================================================
    PATH NODE (PROXIMITY + AUDIO)
    ===================================================== */
 
@@ -36,7 +61,7 @@ AFRAME.registerComponent("path-node", {
     this.consumed = false;
     this.system = this.el.sceneEl.systems["path-manager"];
 
-    // Visual pulse
+    // Always pulse (base visual presence)
     this.el.setAttribute("soft-pulse", "");
 
     // Audio is optional (silent nodes allowed)
@@ -69,19 +94,18 @@ AFRAME.registerComponent("path-node", {
       this.triggered = true;
       this.consumed = true;
 
-      if (this.system) {
-        // 🔒 GLOBAL root lock (front_1, back_1, left_1, right_1)
-        if (this.system.lockRootPath) {
-          this.system.lockRootPath(this.data.id);
-        }
+      // Remove glow immediately (this node is no longer a target)
+      this.el.removeAttribute("guidance-glow");
 
-        // 🔒 LOCAL sibling lock (branching)
-        if (this.system.lockChoice) {
-          this.system.lockChoice(this.data.id);
-        }
+      if (this.system) {
+        // 🔒 GLOBAL root lock
+        this.system.lockRootPath?.(this.data.id);
+
+        // 🔒 LOCAL sibling lock
+        this.system.lockChoice?.(this.data.id);
       }
 
-      // Hide visual immediately
+      // Hide visual immediately (fade handled elsewhere)
       this.el.setAttribute("visible", "false");
 
       if (this.sound && this.sound.components?.sound) {
