@@ -1,5 +1,5 @@
 /* =====================================================
-   SOFT PULSE + GENTLE BOUNCE
+   SOFT PULSE + GENTLE BOUNCE (ROBUST)
    ===================================================== */
 
 AFRAME.registerComponent("soft-pulse", {
@@ -12,30 +12,32 @@ AFRAME.registerComponent("soft-pulse", {
 
   init() {
     const el = this.el;
+
+    // Capture starting values ONCE
+    const startScale = el.getAttribute("scale") || { x: 1, y: 1, z: 1 };
     const startY = el.object3D.position.y;
 
-    // Scale breathing
+    // Scale breathing (to scaleMax)
+    el.setAttribute("scale", `${startScale.x} ${startScale.y} ${startScale.z}`);
     el.setAttribute("animation__pulse_scale", {
       property: "scale",
       dir: "alternate",
       dur: this.data.duration,
       easing: "easeInOutSine",
       loop: true,
+      from: `${this.data.scaleMin} ${this.data.scaleMin} ${this.data.scaleMin}`,
       to: `${this.data.scaleMax} ${this.data.scaleMax} ${this.data.scaleMax}`
     });
 
-    // Gentle vertical bounce (absolute, safe)
-    el.setAttribute("animation__pulse_bounce", {
-      property: "position",
+    // ✅ Bounce safely on Y only (never fights positioning)
+    el.setAttribute("animation__pulse_y", {
+      property: "object3D.position.y",
       dir: "alternate",
       dur: this.data.duration,
       easing: "easeInOutSine",
       loop: true,
-      to: {
-        x: el.object3D.position.x,
-        y: startY + this.data.bounce,
-        z: el.object3D.position.z
-      }
+      from: startY,
+      to: startY + this.data.bounce
     });
   }
 });
@@ -46,7 +48,7 @@ AFRAME.registerComponent("soft-pulse", {
 
 AFRAME.registerComponent("guidance-glow", {
   init() {
-    // Ensure emissive channel exists without breaking color
+    // Ensure emissive exists
     this.el.setAttribute("material", {
       emissive: "#ffffff",
       emissiveIntensity: 0.2
@@ -86,7 +88,7 @@ AFRAME.registerComponent("path-node", {
     // Base visual presence
     this.el.setAttribute("soft-pulse", "");
 
-    // Optional audio
+    // Optional audio (silent nodes allowed)
     const audioSrc = `assets/audio/${this.data.id}.wav`;
     this.sound = null;
 
@@ -115,27 +117,30 @@ AFRAME.registerComponent("path-node", {
     if (camPos.distanceTo(nodePos) < 0.75) {
       this.triggered = true;
 
-      // This node is no longer a target
+      // Stop visual guidance instantly
       this.el.removeAttribute("guidance-glow");
+      this.el.removeAttribute("soft-pulse");
+      this.el.removeAttribute("animation__pulse_scale");
+      this.el.removeAttribute("animation__pulse_y");
 
       if (this.system) {
         // Global root lock
-        this.system.lockRootPath?.(this.data.id);
+        if (typeof this.system.lockRootPath === "function") {
+          this.system.lockRootPath(this.data.id);
+        }
 
         // Local sibling lock
-        this.system.lockChoice?.(this.data.id);
+        if (typeof this.system.lockChoice === "function") {
+          this.system.lockChoice(this.data.id);
+        }
       }
 
-      // Hide visual immediately (fade handled in path-manager)
+      // Hide node immediately (audio continues if present)
       this.el.setAttribute("visible", "false");
 
-      if (this.sound && this.sound.components?.sound) {
+      if (this.sound && this.sound.components && this.sound.components.sound) {
         this.sound.components.sound.playSound();
-        this.sound.addEventListener(
-          "sound-ended",
-          () => this.finish(),
-          { once: true }
-        );
+        this.sound.addEventListener("sound-ended", () => this.finish(), { once: true });
       } else {
         this.finish();
       }
@@ -143,12 +148,8 @@ AFRAME.registerComponent("path-node", {
   },
 
   finish() {
-    if (this.system) {
-      this.system.completeNode(
-        this.data.id,
-        this.data.next,
-        this.el.object3D.position
-      );
+    if (this.system && typeof this.system.completeNode === "function") {
+      this.system.completeNode(this.data.id, this.data.next, this.el.object3D.position);
     }
     this.el.remove();
   }
