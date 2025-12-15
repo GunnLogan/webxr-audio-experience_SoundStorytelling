@@ -1,7 +1,9 @@
 /* =====================================================
-   WASD CONTROL HELPER (SHARED)
+   WASD CONTROL HELPER (DEBUG ONLY)
    ===================================================== */
 function setWASDEnabled(enabled) {
+  if (!window.__DEBUG_MODE__) return; // 🔒 never affect mobile AR
+
   const camera = document.querySelector("#camera");
   if (!camera) return;
 
@@ -49,7 +51,7 @@ AFRAME.registerComponent("soft-pulse", {
 });
 
 /* =====================================================
-   GUIDANCE GLOW (SAFE FOR TRANSPARENCY)
+   GUIDANCE GLOW
    ===================================================== */
 
 AFRAME.registerComponent("guidance-glow", {
@@ -123,7 +125,7 @@ AFRAME.registerComponent("path-node", {
       this.el.setAttribute("visible", false);
 
       if (this.sound?.components?.sound) {
-        // 🔒 Freeze movement during audio
+        // 🔒 Freeze WASD only in desktop debug
         setWASDEnabled(false);
 
         this.sound.components.sound.playSound();
