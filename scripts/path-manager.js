@@ -87,7 +87,7 @@ const PATH_GRAPH = {
 };
 
 /* =====================================================
-   PATH MANAGER SYSTEM — WITH CHOICE LOCKING
+   PATH MANAGER SYSTEM — GLOBAL ROOT LOCK
    ===================================================== */
 
 AFRAME.registerSystem("path-manager", {
@@ -95,11 +95,20 @@ AFRAME.registerSystem("path-manager", {
     this.root = document.querySelector("#experienceRoot");
     this.active = new Map();
     this.played = new Set();
-    this.choiceGroups = new Map(); // parentId → [childIds]
+    this.choiceGroups = new Map();
+
+    this.rootNodes = ["front_1", "back_1", "left_1", "right_1"];
+    this.rootLocked = false;
   },
+
+  /* ===============================
+     INITIAL SPAWN
+     =============================== */
 
   spawnInitialDirections() {
     this.clearAll();
+    this.rootLocked = false;
+
     this.spawnNode("front_1", this.forward(1));
     this.spawnNode("back_1", this.forward(-1));
     this.spawnNode("left_1", this.right(-1));
@@ -112,16 +121,29 @@ AFRAME.registerSystem("path-manager", {
     this.choiceGroups.clear();
   },
 
+  /* ===============================
+     NODE SPAWNING
+     =============================== */
+
   spawnNode(id, pos, parentId = null) {
     if (this.active.has(id) || this.played.has(id)) return;
+
+    // Prevent other root paths once one is chosen
+    if (this.rootLocked && this.rootNodes.includes(id)) return;
 
     const def = PATH_GRAPH[id];
     if (!def) return;
 
     const sphere = document.createElement("a-sphere");
     sphere.setAttribute("radius", "0.25");
-    sphere.setAttribute("color", def.color);
     sphere.setAttribute("position", pos);
+    sphere.setAttribute("material", {
+      color: def.color,
+      opacity: 0.65,
+      transparent: true
+    });
+
+    sphere.setAttribute("soft-pulse", "");
     sphere.setAttribute("path-node", { id, next: def.next });
 
     this.root.appendChild(sphere);
@@ -135,7 +157,28 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  /* 🔒 CALLED BY proximity.js */
+  /* ===============================
+     GLOBAL ROOT LOCK
+     =============================== */
+
+  lockRootPath(chosenId) {
+    if (!this.rootNodes.includes(chosenId)) return;
+    if (this.rootLocked) return;
+
+    this.rootLocked = true;
+
+    this.rootNodes.forEach(id => {
+      if (id !== chosenId && this.active.has(id)) {
+        this.active.get(id).remove();
+        this.active.delete(id);
+      }
+    });
+  },
+
+  /* ===============================
+     LOCAL CHOICE LOCK
+     =============================== */
+
   lockChoice(chosenId) {
     for (const [parent, children] of this.choiceGroups.entries()) {
       if (!children.includes(chosenId)) continue;
@@ -152,14 +195,21 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
+  /* ===============================
+     NODE COMPLETION
+     =============================== */
+
   completeNode(id, nextIds, origin) {
     if (this.played.has(id)) return;
 
     this.played.add(id);
     this.active.delete(id);
 
+    // Lock root paths immediately on entry
+    this.lockRootPath(id);
+
     if (id === "explore_more") {
-      this.clearAll();
+      this.played.clear();
       this.spawnInitialDirections();
       return;
     }
@@ -168,16 +218,17 @@ AFRAME.registerSystem("path-manager", {
       const def = PATH_GRAPH[nextId];
       if (!def) return;
 
-      let pos;
-      if (def.offset.center) {
-        pos = new THREE.Vector3(0, CHEST_Y, 0);
-      } else {
-        pos = this.computePosition(origin, def.offset);
-      }
+      const pos = def.offset.center
+        ? new THREE.Vector3(0, CHEST_Y, 0)
+        : this.computePosition(origin, def.offset);
 
       this.spawnNode(nextId, pos, id);
     });
   },
+
+  /* ===============================
+     POSITIONING
+     =============================== */
 
   computePosition(origin, offset) {
     const cam = this.sceneEl.camera.el.object3D;
