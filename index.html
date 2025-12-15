@@ -1,16 +1,46 @@
-<!-- REMOVE ambient + ambient-proximity completely -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>WebXR Audio Experience</title>
 
-<a-scene>
-  <a-entity id="camera" camera look-controls></a-entity>
+  <link rel="icon" href="data:," />
 
-  <a-entity id="intro"
-    sound="src:url(assets/audio/intro.wav); autoplay:false">
-  </a-entity>
+  <!-- A-FRAME MUST LOAD FIRST -->
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
-  <!-- NEW ROOT -->
-  <a-entity id="experienceRoot"></a-entity>
-</a-scene>
+  <!-- YOUR SCRIPTS (defer, correct order) -->
+  <script defer src="scripts/path-manager.js"></script>
+  <script defer src="scripts/proximity.js"></script>
+  <script defer src="scripts/start.js"></script>
+</head>
 
-<script src="scripts/path-manager.js"></script>
-<script src="scripts/proximity.js"></script>
-<script src="scripts/start.js"></script>
+<body>
+
+  <!-- START OVERLAY (REQUIRED BY start.js) -->
+  <div id="startOverlay">
+    <button id="startButton">START</button>
+    <button id="debugButton">DEBUG</button>
+  </div>
+
+  <a-scene>
+
+    <a-entity
+      id="camera"
+      camera
+      look-controls
+      wasd-controls="enabled:false"
+    ></a-entity>
+
+    <a-entity
+      id="intro"
+      sound="src:url(assets/audio/intro.wav); autoplay:false; positional:false"
+    ></a-entity>
+
+    <a-entity id="experienceRoot"></a-entity>
+
+  </a-scene>
+
+</body>
+</html>
