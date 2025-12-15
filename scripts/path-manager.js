@@ -87,7 +87,7 @@ const PATH_GRAPH = {
 };
 
 /* =====================================================
-   PATH MANAGER SYSTEM — WITH CHOICE LOCKING
+   PATH MANAGER SYSTEM — FINAL
    ===================================================== */
 
 AFRAME.registerSystem("path-manager", {
@@ -95,7 +95,7 @@ AFRAME.registerSystem("path-manager", {
     this.root = document.querySelector("#experienceRoot");
     this.active = new Map();
     this.played = new Set();
-    this.choiceGroups = new Map(); // parentId → [childIds]
+    this.choiceGroups = new Map();
 
     this.rootNodes = ["front_1", "back_1", "left_1", "right_1"];
     this.rootLocked = false;
@@ -122,13 +122,54 @@ AFRAME.registerSystem("path-manager", {
   },
 
   /* ===============================
+     FADE IN / OUT HELPERS
+     =============================== */
+
+  fadeIn(el) {
+    el.setAttribute("scale", "0.85 0.85 0.85");
+    el.setAttribute("material", "opacity", 0);
+
+    el.setAttribute("animation__fadein_opacity", {
+      property: "material.opacity",
+      to: 0.65,
+      dur: 600,
+      easing: "easeOutQuad"
+    });
+
+    el.setAttribute("animation__fadein_scale", {
+      property: "scale",
+      to: "1 1 1",
+      dur: 600,
+      easing: "easeOutQuad"
+    });
+  },
+
+  fadeOutAndRemove(el) {
+    el.setAttribute("animation__fade", {
+      property: "material.opacity",
+      to: 0,
+      dur: 600,
+      easing: "easeOutQuad"
+    });
+
+    el.setAttribute("animation__scale", {
+      property: "scale",
+      to: "0.01 0.01 0.01",
+      dur: 600,
+      easing: "easeOutQuad"
+    });
+
+    setTimeout(() => {
+      if (el.parentNode) el.remove();
+    }, 620);
+  },
+
+  /* ===============================
      NODE SPAWNING
      =============================== */
 
   spawnNode(id, pos, parentId = null) {
     if (this.active.has(id) || this.played.has(id)) return;
-
-    // Prevent other root paths once one is chosen
     if (this.rootLocked && this.rootNodes.includes(id)) return;
 
     const def = PATH_GRAPH[id];
@@ -152,6 +193,8 @@ AFRAME.registerSystem("path-manager", {
 
     this.root.appendChild(sphere);
     this.active.set(id, sphere);
+
+    this.fadeIn(sphere);
 
     if (parentId) {
       if (!this.choiceGroups.has(parentId)) {
@@ -180,26 +223,6 @@ AFRAME.registerSystem("path-manager", {
     });
   },
 
-  fadeOutAndRemove(el) {
-    el.setAttribute("animation__fade", {
-      property: "material.opacity",
-      to: 0,
-      dur: 600,
-      easing: "easeOutQuad"
-    });
-
-    el.setAttribute("animation__scale", {
-      property: "scale",
-      to: "0.01 0.01 0.01",
-      dur: 600,
-      easing: "easeOutQuad"
-    });
-
-    setTimeout(() => {
-      if (el.parentNode) el.remove();
-    }, 620);
-  },
-
   /* ===============================
      LOCAL CHOICE LOCK
      =============================== */
@@ -210,7 +233,7 @@ AFRAME.registerSystem("path-manager", {
 
       children.forEach(id => {
         if (id !== chosenId && this.active.has(id)) {
-          this.active.get(id).remove();
+          this.fadeOutAndRemove(this.active.get(id));
           this.active.delete(id);
         }
       });
@@ -229,8 +252,6 @@ AFRAME.registerSystem("path-manager", {
 
     this.played.add(id);
     this.active.delete(id);
-
-    // Lock root paths immediately on entry
     this.lockRootPath(id);
 
     if (id === "explore_more") {
