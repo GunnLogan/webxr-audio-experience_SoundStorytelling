@@ -8,12 +8,16 @@ html, body {
   font-family: sans-serif;
 }
 
+/* ===============================
+   START OVERLAY
+   =============================== */
+
 #startOverlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.9);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -27,22 +31,39 @@ html, body {
   pointer-events: none;
 }
 
+/* ===============================
+   BUTTON CONTAINER
+   =============================== */
+
 #startButtons {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  align-items: center;
 }
 
-#startButton, #debugButton {
-  padding: 16px 32px;
-  font-size: 1.4rem;
+/* ===============================
+   BUTTONS (SHARED)
+   =============================== */
+
+#startButton,
+#debugButton {
+  width: min(80vw, 320px);
+  padding: 22px 36px;
+  font-size: 1.5rem;
+  font-weight: 600;
   border: none;
-  border-radius: 12px;
-  min-width: 220px;
+  border-radius: 16px;
   cursor: pointer;
   position: relative;
   z-index: 10000;
+  letter-spacing: 0.04em;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
+
+/* ===============================
+   PRIMARY / SECONDARY STYLES
+   =============================== */
 
 #startButton {
   background: white;
@@ -50,9 +71,23 @@ html, body {
 }
 
 #debugButton {
-  background: #ddd;
-  color: black;
+  background: #2c2c2c;
+  color: white;
+  border: 1px solid #555;
 }
+
+/* ===============================
+   PRESS FEEDBACK
+   =============================== */
+
+button:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* ===============================
+   BLACKOUT SCREEN (UNCHANGED)
+   =============================== */
 
 #blackoutScreen {
   position: absolute;
@@ -71,6 +106,10 @@ html, body {
   pointer-events: auto;
 }
 
+/* ===============================
+   A-SCENE FULLSCREEN
+   =============================== */
+
 a-scene {
   position: absolute !important;
   top: 0;
@@ -79,12 +118,13 @@ a-scene {
   height: 100% !important;
 }
 
-button:active {
-  transform: scale(0.96);
-  opacity: 0.85;
-}
+/* ===============================
+   INTERACTION SAFETY
+   =============================== */
 
-button, #startOverlay, #blackoutScreen {
+button,
+#startOverlay,
+#blackoutScreen {
   user-select: none;
   -webkit-user-select: none;
 }
