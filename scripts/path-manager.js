@@ -6,7 +6,6 @@ const STEP = 0.5;
    ===================================================== */
 
 const PATH_GRAPH = {
-  /* FRONT — WHITE */
   front_1: { color: "#ffffff", offset: { forward: STEP }, next: ["front_2"] },
   front_2: { color: "#ffffff", offset: { forward: STEP }, next: ["front_3a", "front_3b"] },
   front_3a: { color: "#ffffff", offset: { forward: STEP, right: -STEP }, next: ["front_4a", "front_4b"] },
@@ -18,7 +17,6 @@ const PATH_GRAPH = {
   front_5a: { color: "#ffffff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
   front_5b: { color: "#ffffff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* BACK — BLACK */
   back_1: { color: "#000000", offset: { forward: STEP }, next: ["back_2"] },
   back_2: { color: "#000000", offset: { forward: STEP }, next: ["back_3a", "back_3b"] },
   back_3a: { color: "#000000", offset: { forward: STEP, right: -STEP }, next: ["back_4a", "back_4b"] },
@@ -30,7 +28,6 @@ const PATH_GRAPH = {
   back_5a: { color: "#000000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
   back_5b: { color: "#000000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* LEFT — RED */
   left_1: { color: "#ff0000", offset: { forward: STEP }, next: ["left_2"] },
   left_2: { color: "#ff0000", offset: { forward: STEP }, next: ["left_3a", "left_3b"] },
   left_3a: { color: "#ff0000", offset: { forward: STEP }, next: ["left_4a"] },
@@ -39,7 +36,6 @@ const PATH_GRAPH = {
   left_4a: { color: "#ff0000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
   left_4b: { color: "#ff0000", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* RIGHT — BLUE */
   right_1: { color: "#0066ff", offset: { forward: STEP }, next: ["right_2"] },
   right_2: { color: "#0066ff", offset: { forward: STEP }, next: ["right_3a", "right_3b"] },
   right_3a: { color: "#0066ff", offset: { forward: STEP }, next: ["right_4a"] },
@@ -54,7 +50,6 @@ const PATH_GRAPH = {
   right_6c: { color: "#0066ff", offset: { forward: STEP }, next: ["right_7"] },
   right_7: { color: "#0066ff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  /* END */
   end_a: { color: "#88ffee", offset: { forward: STEP, right: STEP }, next: ["explore_more"] },
   end_b: { color: "#ff4444", offset: { forward: STEP, right: -STEP }, next: ["bomb_end"] },
 
@@ -114,7 +109,6 @@ AFRAME.registerSystem("path-manager", {
 
     this.root.appendChild(el);
     this.active.set(id, el);
-    this.fadeIn(el);
 
     if (parentId) {
       if (!this.choiceGroups.has(parentId)) this.choiceGroups.set(parentId, []);
@@ -122,45 +116,13 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  fadeIn(el) {
-    el.setAttribute("scale", "0.85 0.85 0.85");
-    el.setAttribute("material", "opacity", 0);
-    el.setAttribute("animation__fadein", {
-      property: "material.opacity",
-      to: 0.55,
-      dur: 600,
-      easing: "easeOutQuad"
-    });
-    el.setAttribute("animation__scalein", {
-      property: "scale",
-      to: "1 1 1",
-      dur: 600,
-      easing: "easeOutQuad"
-    });
-  },
-
-  fadeOutAndRemove(el) {
-    el.setAttribute("animation__fadeout", {
-      property: "material.opacity",
-      to: 0,
-      dur: 500,
-      easing: "easeOutQuad"
-    });
-    el.setAttribute("animation__scaleout", {
-      property: "scale",
-      to: "0.01 0.01 0.01",
-      dur: 500,
-      easing: "easeOutQuad"
-    });
-    setTimeout(() => el.remove(), 520);
-  },
-
   lockRootPath(chosenId) {
     if (!this.rootNodes.includes(chosenId) || this.rootLocked) return;
     this.rootLocked = true;
+
     this.rootNodes.forEach(id => {
       if (id !== chosenId && this.active.has(id)) {
-        this.fadeOutAndRemove(this.active.get(id));
+        this.active.get(id).remove();
         this.active.delete(id);
       }
     });
@@ -169,12 +131,14 @@ AFRAME.registerSystem("path-manager", {
   lockChoice(chosenId) {
     for (const [parent, children] of this.choiceGroups.entries()) {
       if (!children.includes(chosenId)) continue;
+
       children.forEach(id => {
         if (id !== chosenId && this.active.has(id)) {
-          this.fadeOutAndRemove(this.active.get(id));
+          this.active.get(id).remove();
           this.active.delete(id);
         }
       });
+
       this.choiceGroups.delete(parent);
       break;
     }
@@ -195,9 +159,11 @@ AFRAME.registerSystem("path-manager", {
     nextIds.forEach(nextId => {
       const def = PATH_GRAPH[nextId];
       if (!def) return;
+
       const pos = def.offset.center
         ? new THREE.Vector3(0, CHEST_Y, 0)
         : this.computePosition(origin, def.offset);
+
       this.spawnNode(nextId, pos, id);
     });
   },
@@ -207,6 +173,7 @@ AFRAME.registerSystem("path-manager", {
     const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
     const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
     const p = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
+
     if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
     if (offset.right) p.add(r.clone().multiplyScalar(offset.right));
     return p;
