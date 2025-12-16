@@ -33,7 +33,33 @@ AFRAME.registerComponent("soft-pulse", {
 });
 
 /* =====================================================
-   PATH NODE — TAP (iOS) / PROXIMITY (OTHERS)
+   GUIDANCE GLOW
+   ===================================================== */
+AFRAME.registerComponent("guidance-glow", {
+  init() {
+    this.el.setAttribute("material", "emissive", "#ffffff");
+    this.el.setAttribute("material", "emissiveIntensity", 0.25);
+
+    this.el.setAttribute("animation__glow", {
+      property: "material.emissiveIntensity",
+      from: 0.25,
+      to: 0.7,
+      dir: "alternate",
+      dur: 1800,
+      easing: "easeInOutSine",
+      loop: true
+    });
+  },
+
+  remove() {
+    this.el.removeAttribute("animation__glow");
+    this.el.setAttribute("material", "emissiveIntensity", 0);
+  }
+});
+
+/* =====================================================
+   PATH NODE
+   explore_more is the ONLY silent node
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
@@ -46,18 +72,7 @@ AFRAME.registerComponent("path-node", {
     this.finished = false;
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
-
-    // 🔒 Detect iOS LOCALLY (no globals!)
-    this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    // Tap-to-trigger on iOS
-    if (this.isIOS) {
-      this.el.addEventListener("click", () => {
-        if (this.triggered) return;
-        this.triggered = true;
-        this.forceFinish();
-      });
-    }
+    this._onEnded = null;
 
     if (this.data.id === "explore_more") return;
 
@@ -79,37 +94,46 @@ AFRAME.registerComponent("path-node", {
 
   tick() {
     if (this.triggered) return;
-    if (this.isIOS) return; // iOS uses tap, not distance
 
     const cam = this.el.sceneEl.camera.el.object3D.position;
     const pos = this.el.object3D.position;
 
     if (cam.distanceTo(pos) < 0.75) {
       this.triggered = true;
-      this.forceFinish();
+
+      this.el.removeAttribute("guidance-glow");
+      this.el.setAttribute("visible", false);
+
+      window.__CURRENT_AUDIO_NODE__ = this;
+
+      if (!this.sound?.components?.sound) {
+        this.forceFinish();
+        return;
+      }
+
+      this.sound.components.sound.playSound();
+      this._onEnded = () => this.forceFinish();
+      this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
     }
   },
 
+  /* =====================================================
+     SAFE FINISH — MATCHES NATURAL FLOW
+     ===================================================== */
   forceFinish() {
     if (this.finished) return;
     this.finished = true;
 
-    window.__CURRENT_AUDIO_NODE__ = this;
+    try {
+      this.sound?.components?.sound?.stopSound();
+      this.sound?.removeEventListener("sound-ended", this._onEnded);
+    } catch {}
 
-    if (this.sound?.components?.sound) {
-      this.sound.components.sound.playSound();
-      this.sound.addEventListener(
-        "sound-ended",
-        () => this.complete(),
-        { once: true }
-      );
-    } else {
-      this.complete();
-    }
-  },
-
-  complete() {
     window.__CURRENT_AUDIO_NODE__ = null;
+
+    // 🔑 THESE TWO WERE MISSING — CRITICAL
+    this.system?.lockRootPath?.(this.data.id);
+    this.system?.lockChoice?.(this.data.id);
 
     this.system?.completeNode(
       this.data.id,
