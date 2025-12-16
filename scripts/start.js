@@ -152,19 +152,18 @@ window.addEventListener("DOMContentLoaded", () => {
      DESKTOP — X = FINISH AUDIO NATURALLY
      ===================================================== */
   document.addEventListener("keydown", (e) => {
-    if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
+  if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
 
-    if (window.__CURRENT_AUDIO_NODE__) {
-  // ❌ DO NOT ADVANCE STORY
-  window.__CURRENT_AUDIO_NODE__.forceFinish(false);
-  hideSkipHint();
-  setWASDEnabled(true);
-  return;
+  if (window.__CURRENT_AUDIO_NODE__) {
+    window.__CURRENT_AUDIO_NODE__.finish();
+    return;
   }
-    if (window.__CURRENT_AUDIO_ENTITY__) {
-      finishIntro();
-    }
-  }, true);
+
+  if (window.__CURRENT_AUDIO_ENTITY__) {
+    finishIntro();
+  }
+}, true);
+
 
   /* =====================================================
      MOBILE SKIP — SAME BEHAVIOR
