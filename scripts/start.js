@@ -101,15 +101,20 @@ window.addEventListener("DOMContentLoaded", () => {
      SKIP AUDIO (DEBUG ONLY)
      =============================== */
   window.addEventListener("keydown", (e) => {
-    if (!window.__DEBUG_MODE__) return;
-    if (e.code !== "KeyX") return;
+  if (!window.__DEBUG_MODE__) return;
 
-    const audio = window.__CURRENT_AUDIO__;
-    if (audio && audio.components?.sound?.isPlaying) {
-      audio.components.sound.stopSound();
-      audio.emit("sound-ended"); // force flow forward
-    }
-  });
+  // X key skips current audio
+  if (e.code === "KeyX") {
+    const playingSounds = document.querySelectorAll("[sound]");
+    playingSounds.forEach(el => {
+      const sound = el.components?.sound;
+      if (sound && sound.isPlaying) {
+        sound.stopSound();
+      }
+    });
+  }
+});
+
 
   /* ===============================
      START EXPERIENCE
