@@ -1,4 +1,7 @@
-@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap");
+/* ===============================
+   GOOGLE FONTS
+   =============================== */
+@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap");
 
 html,
 body {
@@ -8,7 +11,7 @@ body {
   width: 100%;
   height: 100%;
   background: black;
-  font-family: sans-serif;
+  font-family: "Space Grotesk", sans-serif;
 }
 
 /* ===============================
@@ -26,7 +29,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(0, 0, 0, 0.35);
   color: #f2f2f2;
-  font-family: "EB Garamond", serif;
 
   /* Fade behavior */
   opacity: 0;
@@ -38,23 +40,52 @@ body {
   opacity: 1;
 }
 
+/* -------------------------------
+   TITLE — LIBRE FRANKLIN
+   ------------------------------- */
 .title-main {
+  font-family: "Libre Franklin", sans-serif;
   font-size: clamp(1.9rem, 5vw, 2.6rem);
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
+/* -------------------------------
+   SUBTITLE — SPACE GROTESK
+   ------------------------------- */
 .title-sub {
   margin-top: 10px;
+  font-family: "Space Grotesk", sans-serif;
   font-size: clamp(0.9rem, 3vw, 1.1rem);
   font-weight: 400;
   letter-spacing: 0.18em;
   opacity: 0.85;
+  text-transform: uppercase;
 }
 
 /* Fade out placard on start */
 #startTitle.fade-out {
   opacity: 0;
+}
+
+/* ===============================
+   DEBUG HINT (DESKTOP ONLY)
+   =============================== */
+
+.debug-hint {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Space Grotesk", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  user-select: none;
+  z-index: 10001;
 }
 
 /* ===============================
@@ -67,7 +98,7 @@ body {
   transition: opacity 0.6s ease;
 }
 
-/* Extra safety for some browsers */
+/* Extra safety */
 .a-enter-vr-button {
   opacity: 0 !important;
   pointer-events: none !important;
@@ -114,9 +145,11 @@ body {
 #startButton {
   width: min(80vw, 320px);
   padding: 22px 36px;
-  font-size: 1.5rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.4rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   border: none;
   border-radius: 16px;
   cursor: pointer;
