@@ -1,5 +1,3 @@
-const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
 /* =====================================================
    SOFT PULSE + GENTLE BOUNCE
    ===================================================== */
@@ -35,37 +33,7 @@ AFRAME.registerComponent("soft-pulse", {
 });
 
 /* =====================================================
-   GUIDANCE GLOW
-   ===================================================== */
-AFRAME.registerComponent("guidance-glow", {
-  init() {
-    this.el.setAttribute("material", {
-      emissive: "#ffffff",
-      emissiveIntensity: 0.25
-    });
-
-    this.el.setAttribute("animation__glow", {
-      property: "material.emissiveIntensity",
-      from: 0.25,
-      to: 0.7,
-      dir: "alternate",
-      dur: 1800,
-      easing: "easeInOutSine",
-      loop: true
-    });
-  },
-
-  remove() {
-    this.el.removeAttribute("animation__glow");
-    this.el.setAttribute("material", "emissiveIntensity", 0);
-  }
-});
-
-/* =====================================================
-   PATH NODE
-   - iOS: TAP to trigger
-   - Android/Desktop: PROXIMITY
-   - explore_more is silent
+   PATH NODE — TAP (iOS) / PROXIMITY (OTHERS)
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
@@ -78,17 +46,18 @@ AFRAME.registerComponent("path-node", {
     this.finished = false;
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
-    this._onEnded = null;
 
-    // iOS: tap-to-trigger
-    if (IS_IOS) {
-      this.el.classList.add("clickable");
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Tap to trigger on iOS
+    if (isIOS) {
       this.el.addEventListener("click", () => {
-        if (!this.triggered) this.trigger();
+        if (this.triggered) return;
+        this.triggered = true;
+        this.forceFinish();
       });
     }
 
-    // Silent node
     if (this.data.id === "explore_more") return;
 
     const audioSrc = `assets/audio/${this.data.id}.wav`;
@@ -108,60 +77,38 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    // iOS does NOT use proximity
-    if (IS_IOS || this.triggered) return;
-
-    const camPos = this.el.sceneEl.camera.el.object3D.position;
-    const nodePos = this.el.object3D.position;
-
-    if (camPos.distanceTo(nodePos) < 0.75) {
-      this.trigger();
-    }
-  },
-
-  /* =====================================================
-     TRIGGER (shared by proximity & tap)
-     ===================================================== */
-  trigger() {
     if (this.triggered) return;
-    this.triggered = true;
 
-    this.el.removeAttribute("guidance-glow");
-    this.el.setAttribute("visible", false);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isIOS) return;
 
-    // Register globally (for X key / mobile skip)
-    window.__CURRENT_AUDIO_NODE__ = this;
+    const cam = this.el.sceneEl.camera.el.object3D.position;
+    const pos = this.el.object3D.position;
 
-    if (!this.sound?.components?.sound) {
+    if (cam.distanceTo(pos) < 0.75) {
+      this.triggered = true;
       this.forceFinish();
-      return;
     }
-
-    this.sound.components.sound.playSound();
-    this._onEnded = () => this.forceFinish();
-    this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
   },
 
-  /* =====================================================
-     SAFE FINISH — SINGLE EXIT POINT
-     ===================================================== */
   forceFinish() {
     if (this.finished) return;
     this.finished = true;
 
+    window.__CURRENT_AUDIO_NODE__ = this;
+
     try {
-      this.sound?.components?.sound?.stopSound();
-      this.sound?.removeEventListener("sound-ended", this._onEnded);
+      this.sound?.components?.sound?.playSound();
     } catch {}
 
-    window.__CURRENT_AUDIO_NODE__ = null;
-
-    this.system?.completeNode(
-      this.data.id,
-      this.data.next,
-      this.el.object3D.position
-    );
-
-    this.el.remove();
+    this.sound?.addEventListener("sound-ended", () => {
+      window.__CURRENT_AUDIO_NODE__ = null;
+      this.system?.completeNode(
+        this.data.id,
+        this.data.next,
+        this.el.object3D.position
+      );
+      this.el.remove();
+    }, { once: true });
   }
 });
