@@ -1,6 +1,10 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5;           // 50 cm
-const ROOT_DISTANCE = 1.2;  // 120 cm
+const STEP = 0.5;          // 50 cm
+const ROOT_DISTANCE = 1.2; // 120 cm
+
+/* =====================================================
+   PATH GRAPH — AUTHORITATIVE
+   ===================================================== */
 
 const PATH_GRAPH = {
   front_1: { color: "#ffffff", next: ["front_2"] },
@@ -49,6 +53,10 @@ const PATH_GRAPH = {
   bomb_end: { color: "#000000", next: [] }
 };
 
+/* =====================================================
+   PATH MANAGER SYSTEM
+   ===================================================== */
+
 AFRAME.registerSystem("path-manager", {
   init() {
     this.root = document.querySelector("#experienceRoot");
@@ -56,6 +64,9 @@ AFRAME.registerSystem("path-manager", {
     this.played = new Set();
   },
 
+  /* =====================================================
+     ROOT SPAWN
+     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
@@ -91,13 +102,20 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
+  /* =====================================================
+     NODE COMPLETION
+     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
     this.played.add(id);
 
     const sourceEl = this.active.get(id);
+    if (!sourceEl) return;
+
+    // 🔑 capture position BEFORE removing anything
     const base = sourceEl.object3D.position.clone();
 
+    // remove ALL current nodes (siblings included)
     this.active.forEach(el => el.remove());
     this.active.clear();
 
@@ -107,6 +125,7 @@ AFRAME.registerSystem("path-manager", {
       return;
     }
 
+    // ── spawn next ─────────────────────────────
     if (nextIds.length === 1) {
       this.spawnNode(
         nextIds[0],
@@ -119,7 +138,7 @@ AFRAME.registerSystem("path-manager", {
       );
       this.spawnNode(
         nextIds[1],
-        base.clone().add(new THREE.Vector3(STEP, 0, -STEP))
+        base.clone().add(new THREE.Vector3( STEP, 0, -STEP))
       );
     }
   }
