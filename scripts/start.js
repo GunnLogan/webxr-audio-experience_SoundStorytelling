@@ -18,6 +18,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const camera = document.querySelector("#camera");
   const debugSky = document.querySelector("#debugSky");
 
+  // INFO / POSTER
+  const infoButton = document.querySelector("#infoButton");
+  const posterOverlay = document.querySelector("#posterOverlay");
+
   if (!startBtn || !intro || !scene || !camera) return;
 
   let introPlayed = false;
@@ -64,8 +68,6 @@ window.addEventListener("DOMContentLoaded", () => {
       camera.setAttribute("wasd-controls", "enabled:true");
       camera.setAttribute("look-controls", "enabled:true");
       camera.setAttribute("position", "0 1.6 0");
-
-      // ❌ NEVER enter AR in desktop debug
     }
 
     // -----------------------------
@@ -121,4 +123,18 @@ window.addEventListener("DOMContentLoaded", () => {
       finishIntro();
     }
   }, true);
+
+  // =====================================================
+  // INFO POSTER — ONE-TIME REVEAL (NON-INTRUSIVE)
+  // =====================================================
+  if (infoButton && posterOverlay) {
+    infoButton.addEventListener("click", () => {
+      posterOverlay.classList.add("visible");
+      infoButton.classList.add("disabled");
+
+      setTimeout(() => {
+        posterOverlay.classList.remove("visible");
+      }, 5000);
+    });
+  }
 });
