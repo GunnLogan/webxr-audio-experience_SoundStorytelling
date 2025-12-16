@@ -14,25 +14,10 @@ body {
   font-family: "Space Grotesk", sans-serif;
 }
 
-/* ================================================
-   START POSTER (A3 IMAGE)
-   ================================================ */
-.start-poster {
-  width: 100%;
-  max-width: 420px; /* same visual width as plaque */
-  height: auto;
-
-  margin-bottom: 16px;
-
-  display: block;
-  border-radius: 6px;
-
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
 /* ===============================
    HISTORICAL PLACARD (START TITLE)
    =============================== */
+
 #startTitle.placard {
   text-align: center;
 
@@ -54,7 +39,7 @@ body {
 }
 
 /* -------------------------------
-   TITLE — LIBRE FRANKLIN
+   TITLE
    ------------------------------- */
 .title-main {
   font-family: "Libre Franklin", sans-serif;
@@ -64,12 +49,8 @@ body {
   text-transform: uppercase;
 }
 
-/* -------------------------------
-   SUBTITLE — SPACE GROTESK
-   ------------------------------- */
 .title-sub {
   margin-top: 10px;
-  font-family: "Space Grotesk", sans-serif;
   font-size: clamp(0.9rem, 3vw, 1.1rem);
   font-weight: 400;
   letter-spacing: 0.18em;
@@ -77,19 +58,16 @@ body {
   text-transform: uppercase;
 }
 
-/* Fade out placard on start */
-#startTitle.fade-out {
-  opacity: 0;
-}
-
 /* ===============================
    START OVERLAY
    =============================== */
+
 #startOverlay {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
+
   background: rgba(0, 0, 0, 0.9);
 
   display: flex;
@@ -109,6 +87,7 @@ body {
 /* ===============================
    BUTTON CONTAINER
    =============================== */
+
 #startButtons {
   display: flex;
   flex-direction: column;
@@ -119,6 +98,7 @@ body {
 /* ===============================
    START BUTTON
    =============================== */
+
 #startButton {
   width: min(80vw, 320px);
   padding: 22px 36px;
@@ -136,7 +116,6 @@ body {
   background: white;
   color: black;
 
-  z-index: 10000;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
@@ -146,76 +125,9 @@ body {
 }
 
 /* ===============================
-   INFO BUTTON (TOP RIGHT)
+   A-FRAME SCENE FULLSCREEN
    =============================== */
-#infoButton {
-  position: fixed;
-  top: 14px;
-  right: 16px;
 
-  width: 32px;
-  height: 32px;
-
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(0, 0, 0, 0.6);
-
-  color: white;
-  font-size: 1.1rem;
-  font-family: "Space Grotesk", sans-serif;
-
-  cursor: pointer;
-  z-index: 10005;
-
-  transition: opacity 0.3s ease, transform 0.2s ease;
-}
-
-#infoButton:active {
-  transform: scale(0.95);
-}
-
-#infoButton.disabled {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* ===============================
-   POSTER OVERLAY (TEMPORARY)
-   =============================== */
-#posterOverlay {
-  position: fixed;
-  inset: 0;
-
-  background: rgba(0, 0, 0, 0.9);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  opacity: 0;
-  pointer-events: none;
-
-  z-index: 10004;
-  transition: opacity 0.4s ease;
-}
-
-#posterOverlay.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.poster-overlay-image {
-  width: 90%;
-  max-width: 520px;
-  height: auto;
-
-  border-radius: 6px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-/* ===============================
-   DEBUG SKY & A-FRAME
-   =============================== */
 a-scene {
   position: absolute !important;
   inset: 0;
@@ -226,6 +138,7 @@ a-scene {
 /* ===============================
    INTERACTION SAFETY
    =============================== */
+
 button,
 #startOverlay {
   user-select: none;
@@ -233,8 +146,9 @@ button,
 }
 
 /* ===============================
-   DEBUG HINT (DESKTOP)
+   DEBUG HINT
    =============================== */
+
 #debugHint {
   position: fixed;
   bottom: 20px;
@@ -242,7 +156,6 @@ button,
   transform: translateX(-50%);
 
   padding: 10px 16px;
-  font-family: "Space Grotesk", sans-serif;
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
