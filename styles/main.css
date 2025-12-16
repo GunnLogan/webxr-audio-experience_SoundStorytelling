@@ -13,6 +13,22 @@ body {
   background: black;
   font-family: "Space Grotesk", sans-serif;
 }
+/* ================================================
+   START POSTER (A3 IMAGE)
+   ================================================ */
+.start-poster {
+  width: 100%;
+  max-width: 420px; /* same visual width as plaque */
+  height: auto;
+
+  margin-bottom: 16px;
+
+  display: block;
+  border-radius: 6px;
+
+  /* Optional polish */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
 
 /* ===============================
    HISTORICAL PLACARD (START TITLE)
