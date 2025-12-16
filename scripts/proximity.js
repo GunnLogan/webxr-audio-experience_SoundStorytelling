@@ -75,8 +75,7 @@ AFRAME.registerComponent("guidance-glow", {
 });
 
 /* =====================================================
-   PATH NODE
-   explore_more is the ONLY silent node
+   PATH NODE (explore_more is ONLY silent node)
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
@@ -86,10 +85,11 @@ AFRAME.registerComponent("path-node", {
 
   init() {
     this.triggered = false;
+    this.finished = false; // ✅ CRITICAL GUARD
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
+    this.onSoundEnded = null;
 
-    // Silent node
     if (this.data.id === "explore_more") return;
 
     const audioSrc = `assets/audio/${this.data.id}.wav`;
@@ -109,7 +109,7 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    if (this.triggered) return;
+    if (this.triggered || this.finished) return;
 
     const cam = this.el.sceneEl.camera.el.object3D.position;
     const pos = this.el.object3D.position;
@@ -117,38 +117,36 @@ AFRAME.registerComponent("path-node", {
     if (cam.distanceTo(pos) < 0.75) {
       this.triggered = true;
       this.el.removeAttribute("guidance-glow");
+      this.el.setAttribute("visible", false);
 
       this.system?.lockRootPath?.(this.data.id);
       this.system?.lockChoice?.(this.data.id);
-
-      this.el.setAttribute("visible", false);
 
       if (!this.sound?.components?.sound) {
         this.finish();
         return;
       }
 
-      // Freeze WASD (debug only)
       setWASDEnabled(false);
-
-      // Register active audio
       window.__CURRENT_AUDIO_NODE__ = this;
 
+      this.onSoundEnded = () => this.finish();
+
       this.sound.components.sound.playSound();
-      this.sound.addEventListener(
-        "sound-ended",
-        () => {
-          window.__CURRENT_AUDIO_NODE__ = null;
-          setWASDEnabled(true);
-          this.finish();
-        },
-        { once: true }
-      );
+      this.sound.addEventListener("sound-ended", this.onSoundEnded, { once: true });
     }
   },
 
   finish() {
+    if (this.finished) return; // ✅ PREVENT DOUBLE EXECUTION
+    this.finished = true;
+
     window.__CURRENT_AUDIO_NODE__ = null;
+    setWASDEnabled(true);
+
+    if (this.sound && this.onSoundEnded) {
+      this.sound.removeEventListener("sound-ended", this.onSoundEnded);
+    }
 
     this.system?.completeNode(
       this.data.id,
