@@ -18,22 +18,20 @@ window.addEventListener("DOMContentLoaded", () => {
   const camera = document.querySelector("#camera");
   const debugSky = document.querySelector("#debugSky");
 
-  // INFO / POSTER
-  const infoButton = document.querySelector("#infoButton");
-  const posterOverlay = document.querySelector("#posterOverlay");
-
   if (!startBtn || !intro || !scene || !camera) return;
 
   let introPlayed = false;
   let debugMode = false;
 
   // =====================================================
-  // AUDIO UNLOCK
+  // AUDIO UNLOCK (REQUIRED FOR MOBILE)
   // =====================================================
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
     if (ctx?.state === "suspended") {
-      try { await ctx.resume(); } catch {}
+      try {
+        await ctx.resume();
+      } catch {}
     }
   }
 
@@ -43,10 +41,13 @@ window.addEventListener("DOMContentLoaded", () => {
   function finishIntro() {
     if (!window.__CURRENT_AUDIO_ENTITY__) return;
 
-    try { intro.components.sound.stopSound(); } catch {}
+    try {
+      intro.components.sound.stopSound();
+    } catch {}
 
     window.__CURRENT_AUDIO_ENTITY__ = null;
 
+    // Spawn first path nodes
     scene.systems["path-manager"]?.spawnInitialDirections();
   }
 
@@ -54,32 +55,31 @@ window.addEventListener("DOMContentLoaded", () => {
   // START EXPERIENCE
   // =====================================================
   async function startExperience() {
-    // Hide overlay BEFORE any XR calls
+    // Fade out start overlay
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
-    setTimeout(() => overlay.style.display = "none", 600);
+    setTimeout(() => {
+      overlay.style.display = "none";
+    }, 600);
 
     // -----------------------------
     // DESKTOP DEBUG MODE
     // -----------------------------
     if (debugMode) {
       debugSky?.setAttribute("visible", "true");
-
       camera.setAttribute("wasd-controls", "enabled:true");
       camera.setAttribute("look-controls", "enabled:true");
       camera.setAttribute("position", "0 1.6 0");
     }
 
     // -----------------------------
-    // ANDROID AR ONLY
+    // ANDROID AR ONLY (NO DEBUG)
     // -----------------------------
-    if (!debugMode && !window.IS_IOS) {
-      if (scene.enterAR) {
-        try {
-          await scene.enterAR();
-        } catch (e) {
-          console.warn("AR failed to start", e);
-        }
+    if (!debugMode && !window.IS_IOS && scene.enterAR) {
+      try {
+        await scene.enterAR();
+      } catch (e) {
+        console.warn("AR failed to start", e);
       }
     }
 
@@ -109,32 +109,22 @@ window.addEventListener("DOMContentLoaded", () => {
   // =====================================================
   // DESKTOP — X FINISHES CURRENT AUDIO ONLY
   // =====================================================
-  document.addEventListener("keydown", (e) => {
-    if (e.code !== "KeyX") return;
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.code !== "KeyX") return;
 
-    // Finish node audio
-    if (window.__CURRENT_AUDIO_NODE__) {
-      window.__CURRENT_AUDIO_NODE__.finish();
-      return;
-    }
+      // Finish node audio
+      if (window.__CURRENT_AUDIO_NODE__) {
+        window.__CURRENT_AUDIO_NODE__.finish();
+        return;
+      }
 
-    // Finish intro audio
-    if (window.__CURRENT_AUDIO_ENTITY__) {
-      finishIntro();
-    }
-  }, true);
-
-  // =====================================================
-  // INFO POSTER — ONE-TIME REVEAL (NON-INTRUSIVE)
-  // =====================================================
-  if (infoButton && posterOverlay) {
-    infoButton.addEventListener("click", () => {
-      posterOverlay.classList.add("visible");
-      infoButton.classList.add("disabled");
-
-      setTimeout(() => {
-        posterOverlay.classList.remove("visible");
-      }, 5000);
-    });
-  }
+      // Finish intro audio
+      if (window.__CURRENT_AUDIO_ENTITY__) {
+        finishIntro();
+      }
+    },
+    true
+  );
 });
