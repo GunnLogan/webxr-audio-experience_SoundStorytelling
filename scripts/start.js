@@ -61,6 +61,8 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
+    document.querySelector("#infoButton")?.classList.add("disabled");
+
     // -----------------------------
     // DESKTOP DEBUG MODE
     // -----------------------------
