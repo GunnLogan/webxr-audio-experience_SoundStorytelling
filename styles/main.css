@@ -1,259 +1,64 @@
 /* ===============================
-   GOOGLE FONTS
+   INFO ICON
    =============================== */
-@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap");
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  background: black;
-  font-family: "Space Grotesk", sans-serif;
-}
-/* ================================================
-   START POSTER (A3 IMAGE)
-   ================================================ */
-.start-poster {
-  width: 100%;
-  max-width: 420px; /* same visual width as plaque */
-  height: auto;
-
-  margin-bottom: 16px;
-
-  display: block;
-  border-radius: 6px;
-
-  /* Optional polish */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-/* ===============================
-   HISTORICAL PLACARD (START TITLE)
-   =============================== */
-
-#startTitle.placard {
-  text-align: center;
-
-  /* Mobile breathing room + desktop restraint */
-  max-width: 520px;
-  margin: 0 24px 36px 24px;
-  padding: 24px 28px;
-
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(0, 0, 0, 0.35);
-  color: #f2f2f2;
-
-  /* Fade behavior */
-  opacity: 0;
-  transition: opacity 1.6s ease;
-}
-
-/* Fade in while overlay is visible */
-#startOverlay:not(.hidden) #startTitle {
-  opacity: 1;
-}
-
-/* -------------------------------
-   TITLE — LIBRE FRANKLIN
-   ------------------------------- */
-.title-main {
-  font-family: "Libre Franklin", sans-serif;
-  font-size: clamp(1.9rem, 5vw, 2.6rem);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-/* -------------------------------
-   SUBTITLE — SPACE GROTESK
-   ------------------------------- */
-.title-sub {
-  margin-top: 10px;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: clamp(0.9rem, 3vw, 1.1rem);
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  opacity: 0.85;
-  text-transform: uppercase;
-}
-
-/* Fade out placard on start */
-#startTitle.fade-out {
-  opacity: 0;
-}
-
-/* ===============================
-   DEBUG HINT (DESKTOP ONLY)
-   =============================== */
-
-.debug-hint {
+#infoButton {
   position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: "Space Grotesk", monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  top: 14px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.6);
+
+  color: white;
+  font-size: 1.2rem;
+  font-family: "Space Grotesk", sans-serif;
+  cursor: pointer;
+
+  z-index: 10005;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+#infoButton:hover {
+  transform: scale(1.05);
+}
+
+#infoButton.disabled {
+  opacity: 0;
   pointer-events: none;
-  user-select: none;
-  z-index: 10001;
 }
 
 /* ===============================
-   HIDE A-FRAME VR BUTTON
+   POSTER OVERLAY
    =============================== */
-/*
-.a-enter-vr {
-  opacity: 0 !important;
-  pointer-events: none !important;
+#posterOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0;
+  pointer-events: none;
+
+  z-index: 10004;
   transition: opacity 0.6s ease;
 }
-*/
 
-/* Extra safety */
-/*
-.a-enter-vr-button {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-*/
-/* ===============================
-   START OVERLAY
-   =============================== */
-
-#startOverlay {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  opacity: 1;
-  transition: opacity 0.8s ease;
-  touch-action: none;
-}
-
-#startOverlay.hidden {
-  pointer-events: none;
-}
-
-/* ===============================
-   BUTTON CONTAINER
-   =============================== */
-
-#startButtons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-/* ===============================
-   START BUTTON
-   =============================== */
-
-#startButton {
-  width: min(80vw, 320px);
-  padding: 22px 36px;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 1.4rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 16px;
-  cursor: pointer;
-  background: white;
-  color: black;
-  z-index: 10000;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-/* Press feedback */
-#startButton:active {
-  transform: scale(0.96);
-  opacity: 0.85;
-}
-
-/* ===============================
-   BLACKOUT SCREEN (SAFE TO KEEP)
-   =============================== */
-
-#blackoutScreen {
-  position: absolute;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background: black;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 9000;
-  transition: opacity 0.8s ease;
-}
-
-#blackoutScreen.active {
+#posterOverlay.visible {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* ===============================
-   A-FRAME SCENE FULLSCREEN
-   =============================== */
+.poster-overlay-image {
+  width: 90%;
+  max-width: 520px;
+  height: auto;
 
-a-scene {
-  position: absolute !important;
-  top: 0;
-  left: 0;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* ===============================
-   INTERACTION SAFETY
-   =============================== */
-
-button,
-#startOverlay,
-#blackoutScreen {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* ===============================
-   DEBUG OVERLAY HINT (DESKTOP)
-   =============================== */
-
-#debugHint {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-
-  padding: 10px 16px;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-
-  background: rgba(0, 0, 0, 0.65);
-  color: rgba(255, 255, 255, 0.85);
-  border-radius: 8px;
-
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-
-  z-index: 10002;
-}
-
-#debugHint.visible {
-  opacity: 1;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
