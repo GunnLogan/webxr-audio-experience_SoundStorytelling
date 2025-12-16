@@ -1,5 +1,6 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5; // 50 cm
+const STEP = 0.5;        // 50 cm
+const ROOT_DISTANCE = 1.2; // 120 cm initial spacing
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -68,21 +69,24 @@ AFRAME.registerSystem("path-manager", {
     this.played = new Set();
   },
 
+  /* =====================================================
+     INITIAL ROOTS
+     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
     if (window.IS_IOS) {
-      this.spawnNode("front_1", this.radial(0));
-      this.spawnNode("right_1", this.radial(90));
-      this.spawnNode("back_1", this.radial(180));
-      this.spawnNode("left_1", this.radial(270));
+      this.spawnNode("front_1", this.radial(0, ROOT_DISTANCE));
+      this.spawnNode("right_1", this.radial(90, ROOT_DISTANCE));
+      this.spawnNode("back_1", this.radial(180, ROOT_DISTANCE));
+      this.spawnNode("left_1", this.radial(270, ROOT_DISTANCE));
       return;
     }
 
-    this.spawnNode("front_1", this.forward(STEP));
-    this.spawnNode("back_1", this.forward(-STEP));
-    this.spawnNode("left_1", this.right(-STEP));
-    this.spawnNode("right_1", this.right(STEP));
+    this.spawnNode("front_1", this.forward(ROOT_DISTANCE));
+    this.spawnNode("back_1", this.forward(-ROOT_DISTANCE));
+    this.spawnNode("left_1", this.right(-ROOT_DISTANCE));
+    this.spawnNode("right_1", this.right(ROOT_DISTANCE));
   },
 
   clearAll() {
@@ -113,15 +117,15 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
+  /* =====================================================
+     COMPLETE NODE
+     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
-
     this.played.add(id);
 
-    // 🔥 REMOVE ALL OTHER ACTIVE NODES
-    this.active.forEach((el, key) => {
-      if (key !== id) el.remove();
-    });
+    // 🔥 remove all other branches
+    this.active.forEach((el) => el.remove());
     this.active.clear();
 
     if (id === "explore_more") {
@@ -132,10 +136,10 @@ AFRAME.registerSystem("path-manager", {
 
     if (window.IS_IOS) {
       if (nextIds.length === 1) {
-        this.spawnNode(nextIds[0], this.radial(0), id);
+        this.spawnNode(nextIds[0], this.radial(0, STEP), id);
       } else {
-        this.spawnNode(nextIds[0], this.radial(-45), id);
-        this.spawnNode(nextIds[1], this.radial(45), id);
+        this.spawnNode(nextIds[0], this.radial(-45, STEP), id);
+        this.spawnNode(nextIds[1], this.radial(45, STEP), id);
       }
       return;
     }
@@ -148,12 +152,15 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  radial(deg) {
+  /* =====================================================
+     POSITION HELPERS
+     ===================================================== */
+  radial(deg, dist = STEP) {
     const rad = THREE.MathUtils.degToRad(deg);
     return new THREE.Vector3(
-      Math.sin(rad) * STEP,
+      Math.sin(rad) * dist,
       CHEST_Y,
-      -Math.cos(rad) * STEP
+      -Math.cos(rad) * dist
     );
   },
 
