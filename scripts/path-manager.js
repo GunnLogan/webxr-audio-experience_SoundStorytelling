@@ -1,5 +1,6 @@
 const CHEST_Y = 1.3;
 const STEP = 0.5;
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -50,8 +51,8 @@ const PATH_GRAPH = {
   right_6c: { color: "#0066ff", offset: { forward: STEP }, next: ["right_7"] },
   right_7: { color: "#0066ff", offset: { forward: STEP }, next: ["end_b", "end_a"] },
 
-  end_a: { color: "#88ffee", offset: { forward: STEP, right: STEP }, next: ["explore_more"] },
-  end_b: { color: "#ff4444", offset: { forward: STEP, right: -STEP }, next: ["bomb_end"] },
+  end_a: { color: "#88ffee", offset: { center: true }, next: ["explore_more"] },
+  end_b: { color: "#ff4444", offset: { center: true }, next: ["bomb_end"] },
 
   explore_more: { color: "#ffffff", offset: { center: true }, next: [] },
   bomb_end: { color: "#000000", offset: { center: true }, next: [] }
@@ -74,6 +75,14 @@ AFRAME.registerSystem("path-manager", {
   spawnInitialDirections() {
     this.clearAll();
     this.rootLocked = false;
+
+    if (IS_IOS) {
+      // iOS: spawn ONE choice at center at a time
+      this.spawnNode("front_1", this.center());
+      return;
+    }
+
+    // Desktop / Android
     this.spawnNode("front_1", this.forward(1));
     this.spawnNode("back_1", this.forward(-1));
     this.spawnNode("left_1", this.right(-1));
@@ -88,7 +97,6 @@ AFRAME.registerSystem("path-manager", {
 
   spawnNode(id, pos, parentId = null) {
     if (this.active.has(id) || this.played.has(id)) return;
-    if (this.rootLocked && this.rootNodes.includes(id)) return;
 
     const def = PATH_GRAPH[id];
     if (!def) return;
@@ -109,48 +117,13 @@ AFRAME.registerSystem("path-manager", {
 
     this.root.appendChild(el);
     this.active.set(id, el);
-
-    if (parentId) {
-      if (!this.choiceGroups.has(parentId)) {
-        this.choiceGroups.set(parentId, []);
-      }
-      this.choiceGroups.get(parentId).push(id);
-    }
   },
 
-  lockRootPath(chosenId) {
-    if (!this.rootNodes.includes(chosenId) || this.rootLocked) return;
-    this.rootLocked = true;
-
-    this.rootNodes.forEach(id => {
-      if (id !== chosenId && this.active.has(id)) {
-        this.active.get(id).remove();
-        this.active.delete(id);
-      }
-    });
-  },
-
-  lockChoice(chosenId) {
-    for (const [parent, children] of this.choiceGroups.entries()) {
-      if (!children.includes(chosenId)) continue;
-
-      children.forEach(id => {
-        if (id !== chosenId && this.active.has(id)) {
-          this.active.get(id).remove();
-          this.active.delete(id);
-        }
-      });
-
-      this.choiceGroups.delete(parent);
-      break;
-    }
-  },
-
-  completeNode(id, nextIds, origin) {
+  completeNode(id, nextIds) {
     if (this.played.has(id)) return;
+
     this.played.add(id);
     this.active.delete(id);
-    this.lockRootPath(id);
 
     if (id === "explore_more") {
       this.played.clear();
@@ -159,14 +132,19 @@ AFRAME.registerSystem("path-manager", {
     }
 
     nextIds.forEach(nextId => {
-      const def = PATH_GRAPH[nextId];
-      if (!def) return;
+      if (IS_IOS) {
+        this.spawnNode(nextId, this.center(), id);
+      } else {
+        const def = PATH_GRAPH[nextId];
+        const pos = def.offset.center
+          ? this.center()
+          : this.computePosition(
+              this.sceneEl.camera.el.object3D.position,
+              def.offset
+            );
 
-      const pos = def.offset.center
-        ? new THREE.Vector3(0, CHEST_Y, 0)
-        : this.computePosition(origin, def.offset);
-
-      this.spawnNode(nextId, pos, id);
+        this.spawnNode(nextId, pos, id);
+      }
     });
   },
 
@@ -179,6 +157,10 @@ AFRAME.registerSystem("path-manager", {
     if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
     if (offset.right) p.add(r.clone().multiplyScalar(offset.right));
     return p;
+  },
+
+  center() {
+    return new THREE.Vector3(0, CHEST_Y, -1);
   },
 
   forward(m) {
