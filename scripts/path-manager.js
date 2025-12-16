@@ -1,9 +1,8 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5;        // 50 cm
-const ROOT_DISTANCE = 1.2; // 120 cm initial spacing
+const STEP = 0.5; // 50 cm everywhere
 
 /* =====================================================
-   PATH GRAPH — AUTHORITATIVE
+   PATH GRAPH — AUTHORITATIVE (UNCHANGED)
    ===================================================== */
 
 const PATH_GRAPH = {
@@ -70,23 +69,20 @@ AFRAME.registerSystem("path-manager", {
   },
 
   /* =====================================================
-     INITIAL ROOTS
+     INITIAL ROOTS (50 CM FROM CAMERA)
      ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
-    if (window.IS_IOS) {
-      this.spawnNode("front_1", this.radial(0, ROOT_DISTANCE));
-      this.spawnNode("right_1", this.radial(90, ROOT_DISTANCE));
-      this.spawnNode("back_1", this.radial(180, ROOT_DISTANCE));
-      this.spawnNode("left_1", this.radial(270, ROOT_DISTANCE));
-      return;
-    }
+    const cam = this.sceneEl.camera.el.object3D;
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    const base = cam.position.clone().setY(CHEST_Y);
 
-    this.spawnNode("front_1", this.forward(ROOT_DISTANCE));
-    this.spawnNode("back_1", this.forward(-ROOT_DISTANCE));
-    this.spawnNode("left_1", this.right(-ROOT_DISTANCE));
-    this.spawnNode("right_1", this.right(ROOT_DISTANCE));
+    this.spawnNode("front_1", base.clone().add(f.clone().multiplyScalar(STEP)));
+    this.spawnNode("back_1", base.clone().add(f.clone().multiplyScalar(-STEP)));
+    this.spawnNode("left_1", base.clone().add(r.clone().multiplyScalar(-STEP)));
+    this.spawnNode("right_1", base.clone().add(r.clone().multiplyScalar(STEP)));
   },
 
   clearAll() {
@@ -124,8 +120,8 @@ AFRAME.registerSystem("path-manager", {
     if (this.played.has(id)) return;
     this.played.add(id);
 
-    // 🔥 remove all other branches
-    this.active.forEach((el) => el.remove());
+    // Remove all other active branches
+    this.active.forEach(el => el.remove());
     this.active.clear();
 
     if (id === "explore_more") {
@@ -134,59 +130,33 @@ AFRAME.registerSystem("path-manager", {
       return;
     }
 
-    if (window.IS_IOS) {
-      if (nextIds.length === 1) {
-        this.spawnNode(nextIds[0], this.radial(0, STEP), id);
-      } else {
-        this.spawnNode(nextIds[0], this.radial(-45, STEP), id);
-        this.spawnNode(nextIds[1], this.radial(45, STEP), id);
-      }
-      return;
-    }
-
-    if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFromCamera(STEP), id);
-    } else {
-      this.spawnNode(nextIds[0], this.diagonalFromCamera(-STEP, STEP), id);
-      this.spawnNode(nextIds[1], this.diagonalFromCamera(STEP, STEP), id);
-    }
-  },
-
-  /* =====================================================
-     POSITION HELPERS
-     ===================================================== */
-  radial(deg, dist = STEP) {
-    const rad = THREE.MathUtils.degToRad(deg);
-    return new THREE.Vector3(
-      Math.sin(rad) * dist,
-      CHEST_Y,
-      -Math.cos(rad) * dist
-    );
-  },
-
-  forwardFromCamera(d) {
-    const cam = this.sceneEl.camera.el.object3D;
-    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-    return cam.position.clone().add(f.multiplyScalar(d)).setY(CHEST_Y);
-  },
-
-  diagonalFromCamera(x, z) {
     const cam = this.sceneEl.camera.el.object3D;
     const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
     const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    const base = cam.position.clone().setY(CHEST_Y);
 
-    return cam.position
-      .clone()
-      .add(f.multiplyScalar(z))
-      .add(r.multiplyScalar(x))
-      .setY(CHEST_Y);
-  },
+    if (nextIds.length === 1) {
+      this.spawnNode(
+        nextIds[0],
+        base.clone().add(f.clone().multiplyScalar(STEP)),
+        id
+      );
+    } else {
+      this.spawnNode(
+        nextIds[0],
+        base.clone()
+          .add(f.clone().multiplyScalar(STEP))
+          .add(r.clone().multiplyScalar(-STEP)),
+        id
+      );
 
-  forward(d) {
-    return new THREE.Vector3(0, CHEST_Y, -d);
-  },
-
-  right(d) {
-    return new THREE.Vector3(d, CHEST_Y, 0);
+      this.spawnNode(
+        nextIds[1],
+        base.clone()
+          .add(f.clone().multiplyScalar(STEP))
+          .add(r.clone().multiplyScalar(STEP)),
+        id
+      );
+    }
   }
 });
