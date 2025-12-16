@@ -5,6 +5,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const scene = document.querySelector("a-scene");
   const camera = document.querySelector("#camera");
   const debugSky = document.querySelector("#debugSky");
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (!startBtn || !overlay || !intro || !scene || !camera) {
     console.error("Start.js: required elements missing");
