@@ -1,102 +1,263 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, user-scalable=no"
-  />
-  <title>ATOMBOMBEN OVER GARDET</title>
+/* ===============================
+   GOOGLE FONTS
+   =============================== */
+@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap");
 
-  <link rel="icon" href="data:," />
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background: black;
+  font-family: "Space Grotesk", sans-serif;
+}
 
-  <!-- A-FRAME -->
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+/* ================================================
+   START POSTER (A3 IMAGE)
+   ================================================ */
+.start-poster {
+  width: 100%;
+  max-width: 420px; /* same visual width as plaque */
+  height: auto;
 
-  <!-- PROJECT SCRIPTS -->
-  <script defer src="scripts/path-manager.js"></script>
-  <script defer src="scripts/proximity.js"></script>
-  <script defer src="scripts/start.js"></script>
+  margin-bottom: 16px;
 
-  <link rel="stylesheet" href="styles/main.css" />
-</head>
+  display: block;
+  border-radius: 6px;
 
-<body>
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
 
-  <!-- START OVERLAY -->
-  <div id="startOverlay">
-  <div id="startButtons">
+/* ===============================
+   HISTORICAL PLACARD (START TITLE)
+   =============================== */
+#startTitle.placard {
+  text-align: center;
 
-    <!-- A3 IMAGE -->
-    <img
-      src="assets/images/poster.png"
-      alt="poster"
-      class="start-poster"
-    />
+  max-width: 520px;
+  margin: 0 24px 36px 24px;
+  padding: 24px 28px;
 
-    <!-- PLAQUE -->
-    <div id="startTitle" class="placard">
-      <div class="title-main">ATOMBOMBEN ÖVER ÖSTERMALM</div>
-      <div class="title-sub">– EN LJUDVANDRING –</div>
-    </div>
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f2f2f2;
 
-    <!-- START BUTTON -->
-    <button id="startButton">Starta</button>
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
 
-  </div>
-</div>
+/* Fade in while overlay is visible */
+#startOverlay:not(.hidden) #startTitle {
+  opacity: 1;
+}
 
+/* -------------------------------
+   TITLE — LIBRE FRANKLIN
+   ------------------------------- */
+.title-main {
+  font-family: "Libre Franklin", sans-serif;
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 
-  <!-- iOS CAMERA PASSTHROUGH -->
-  <video
-    id="iosCamera"
-    autoplay
-    muted
-    playsinline
-    style="
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-      display: none;
-      background: black;
-    ">
-  </video>
+/* -------------------------------
+   SUBTITLE — SPACE GROTESK
+   ------------------------------- */
+.title-sub {
+  margin-top: 10px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(0.9rem, 3vw, 1.1rem);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
 
-  <!-- A-FRAME SCENE -->
-  <a-scene
-    renderer="alpha:true; colorManagement:true"
-    webxr="optionalFeatures: local-floor;"
-    vr-mode-ui="enabled:false"
-    ar-mode-ui="enabled:false"
-  >
+/* Fade out placard on start */
+#startTitle.fade-out {
+  opacity: 0;
+}
 
-    <!-- DEBUG SKY -->
-    <a-sky id="debugSky" color="#777777" visible="false"></a-sky>
+/* ===============================
+   START OVERLAY
+   =============================== */
+#startOverlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
 
-    <!-- CAMERA -->
-    <a-entity
-      id="camera"
-      camera
-      look-controls="enabled:true"
-      wasd-controls="enabled:false"
-      cursor="rayOrigin: mouse; fuse: false"
-      raycaster="objects: .clickable; far: 10"
-      position="0 1.6 0"
-    ></a-entity>
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-    <!-- INTRO AUDIO -->
-    <a-entity
-      id="intro"
-      sound="src:url(assets/audio/intro.wav); autoplay:false; positional:false"
-    ></a-entity>
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+  touch-action: none;
+}
 
-    <!-- EXPERIENCE ROOT -->
-    <a-entity id="experienceRoot"></a-entity>
+#startOverlay.hidden {
+  pointer-events: none;
+}
 
-  </a-scene>
+/* ===============================
+   BUTTON CONTAINER
+   =============================== */
+#startButtons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
 
-</body>
-</html>
+/* ===============================
+   START BUTTON
+   =============================== */
+#startButton {
+  width: min(80vw, 320px);
+  padding: 22px 36px;
+
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+
+  background: white;
+  color: black;
+
+  z-index: 10000;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#startButton:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* ===============================
+   INFO BUTTON (TOP RIGHT)
+   =============================== */
+#infoButton {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+
+  width: 32px;
+  height: 32px;
+
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.6);
+
+  color: white;
+  font-size: 1.1rem;
+  font-family: "Space Grotesk", sans-serif;
+
+  cursor: pointer;
+  z-index: 10005;
+
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+#infoButton:active {
+  transform: scale(0.95);
+}
+
+#infoButton.disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ===============================
+   POSTER OVERLAY (TEMPORARY)
+   =============================== */
+#posterOverlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.9);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0;
+  pointer-events: none;
+
+  z-index: 10004;
+  transition: opacity 0.4s ease;
+}
+
+#posterOverlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.poster-overlay-image {
+  width: 90%;
+  max-width: 520px;
+  height: auto;
+
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ===============================
+   DEBUG SKY & A-FRAME
+   =============================== */
+a-scene {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ===============================
+   INTERACTION SAFETY
+   =============================== */
+button,
+#startOverlay {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===============================
+   DEBUG HINT (DESKTOP)
+   =============================== */
+#debugHint {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  padding: 10px 16px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+
+  z-index: 10002;
+}
+
+#debugHint.visible {
+  opacity: 1;
+}
