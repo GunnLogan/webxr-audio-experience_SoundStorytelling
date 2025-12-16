@@ -1,77 +1,18 @@
 /* =====================================================
-   PLATFORM DETECTION (SINGLE SOURCE OF TRUTH)
+   PLATFORM DETECTION
    ===================================================== */
 const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* =====================================================
-   SOFT PULSE + GENTLE BOUNCE
-   ===================================================== */
-AFRAME.registerComponent("soft-pulse", {
-  schema: {
-    scaleMax: { type: "number", default: 1.03 },
-    bounce: { type: "number", default: 0.025 },
-    duration: { type: "number", default: 2600 }
-  },
-
-  init() {
-    const el = this.el;
-    const y = el.object3D.position.y;
-
-    el.setAttribute("animation__scale", {
-      property: "scale",
-      dir: "alternate",
-      dur: this.data.duration,
-      easing: "easeInOutSine",
-      loop: true,
-      to: `${this.data.scaleMax} ${this.data.scaleMax} ${this.data.scaleMax}`
-    });
-
-    el.setAttribute("animation__bounce", {
-      property: "position",
-      dir: "alternate",
-      dur: this.data.duration,
-      easing: "easeInOutSine",
-      loop: true,
-      to: `${el.object3D.position.x} ${y + this.data.bounce} ${el.object3D.position.z}`
-    });
-  }
-});
-
-/* =====================================================
-   GUIDANCE GLOW
-   ===================================================== */
-AFRAME.registerComponent("guidance-glow", {
-  init() {
-    this.el.setAttribute("material", "emissive", "#ffffff");
-    this.el.setAttribute("material", "emissiveIntensity", 0.25);
-
-    this.el.setAttribute("animation__glow", {
-      property: "material.emissiveIntensity",
-      from: 0.25,
-      to: 0.7,
-      dir: "alternate",
-      dur: 1800,
-      easing: "easeInOutSine",
-      loop: true
-    });
-  },
-
-  remove() {
-    this.el.removeAttribute("animation__glow");
-    this.el.setAttribute("material", "emissiveIntensity", 0);
-  }
-});
-
-/* =====================================================
    PATH NODE
-   - iOS: TAP to trigger
-   - Desktop/Android: DISTANCE to trigger
-   - Audio completion unlocks next nodes
+   - iOS: TAP (cursor + raycaster)
+   - Desktop / Android / AR: DISTANCE (world space)
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
     id: { type: "string" },
-    next: { type: "array", default: [] }
+    next: { type: "array", default: [] },
+    triggerDistance: { type: "number", default: 0.75 }
   },
 
   init() {
@@ -83,10 +24,12 @@ AFRAME.registerComponent("path-node", {
     this.sound = null;
     this._onEnded = null;
 
-    // iOS → tap
+    // Make raycastable
+    this.el.classList.add("clickable");
+
+    // iOS tap
     if (IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
-      this.el.addEventListener("touchstart", () => this.handleTrigger());
     }
 
     // Silent node
@@ -109,50 +52,53 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    // iOS does not use distance triggers
     if (IS_IOS) return;
     if (this.triggered) return;
 
-    const cam = this.el.sceneEl.camera.el.object3D.position;
-    const pos = this.el.object3D.position;
+    // Block while any audio is playing
+    if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
-    if (cam.distanceTo(pos) < 0.75) {
+    const scene = this.el.sceneEl;
+    if (!scene?.camera?.el) return;
+
+    // WORLD SPACE distance (CRITICAL FIX)
+    const camWorld = new THREE.Vector3();
+    const nodeWorld = new THREE.Vector3();
+    scene.camera.el.object3D.getWorldPosition(camWorld);
+    this.el.object3D.getWorldPosition(nodeWorld);
+
+    if (camWorld.distanceTo(nodeWorld) < this.data.triggerDistance) {
       this.handleTrigger();
     }
   },
 
   /* =====================================================
-     SINGLE ENTRY POINT
+     TRIGGER ENTRY
      ===================================================== */
   handleTrigger() {
     if (this.triggered) return;
+    if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
     this.triggered = true;
     this.isChoice = true;
 
-    // Visual + guidance cleanup
-    this.el.removeAttribute("guidance-glow");
-    this.el.removeAttribute("soft-pulse");
     this.el.setAttribute("visible", false);
 
-    // Register as current audio node
     window.__CURRENT_AUDIO_NODE__ = this;
 
-    // Silent nodes finish immediately
+    // Silent node → immediate finish
     if (!this.sound?.components?.sound) {
       this.forceFinish();
       return;
     }
 
-    // Play audio
     this.sound.components.sound.playSound();
-
     this._onEnded = () => this.forceFinish();
     this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
   },
 
   /* =====================================================
-     SAFE FINISH — SAME PATH FOR NATURAL END & SKIP
+     FINISH (natural or skip)
      ===================================================== */
   forceFinish() {
     if (this.finished) return;
@@ -165,7 +111,7 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // Unlock next nodes ONLY now (after audio fully finished)
+    // Spawn next nodes ONLY after audio finishes
     if (this.isChoice) {
       this.system?.lockRootPath?.(this.data.id);
       this.system?.lockChoice?.(this.data.id);
