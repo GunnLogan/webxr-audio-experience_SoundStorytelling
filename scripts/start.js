@@ -1,4 +1,4 @@
-// ✅ DEFINE ONCE — GLOBAL, SAFE
+// ✅ DEFINE ONCE — GLOBAL
 window.IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -26,7 +26,7 @@ window.addEventListener("DOMContentLoaded", () => {
   window.__CURRENT_AUDIO_ENTITY__ = null;
 
   /* =====================================================
-     UI HELPERS
+     UI
      ===================================================== */
   function showSkipHint() {
     if (window.__DEBUG_MODE__) debugHint?.classList.add("visible");
@@ -72,7 +72,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     INTRO FINISH (CRITICAL FIX)
+     INTRO FINISH (AUTHORITATIVE)
      ===================================================== */
   function finishIntro() {
     try { intro.components.sound.stopSound(); } catch {}
@@ -85,7 +85,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     scene.systems["path-manager"]?.spawnInitialDirections();
 
-    // 🔥 RE-ARM PROXIMITY
+    // 🔥 re-arm proximity AFTER real audio finish
     scene.emit("audio-finished");
   }
 
@@ -148,12 +148,16 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     SKIP (DESKTOP)
+     DESKTOP — X ONLY IF AUDIO IS PLAYING
      ===================================================== */
   document.addEventListener("keydown", (e) => {
     if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
 
-    if (window.__CURRENT_AUDIO_NODE__) {
+    const hasNode = !!window.__CURRENT_AUDIO_NODE__;
+    const hasIntro = !!window.__CURRENT_AUDIO_ENTITY__;
+    if (!hasNode && !hasIntro) return;
+
+    if (hasNode) {
       window.__CURRENT_AUDIO_NODE__.forceFinish();
       scene.emit("audio-finished");
       hideSkipHint();
@@ -161,19 +165,23 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (window.__CURRENT_AUDIO_ENTITY__) {
+    if (hasIntro) {
       finishIntro();
     }
   }, true);
 
   /* =====================================================
-     SKIP (MOBILE)
+     MOBILE SKIP (SAME RULES AS X)
      ===================================================== */
   mobileSkipBtn?.addEventListener("click", () => {
-    if (window.__CURRENT_AUDIO_NODE__) {
+    const hasNode = !!window.__CURRENT_AUDIO_NODE__;
+    const hasIntro = !!window.__CURRENT_AUDIO_ENTITY__;
+    if (!hasNode && !hasIntro) return;
+
+    if (hasNode) {
       window.__CURRENT_AUDIO_NODE__.forceFinish();
       scene.emit("audio-finished");
-    } else if (window.__CURRENT_AUDIO_ENTITY__) {
+    } else {
       finishIntro();
     }
   });
