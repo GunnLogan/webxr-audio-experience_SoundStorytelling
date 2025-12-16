@@ -17,6 +17,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const scene = document.querySelector("a-scene");
   const camera = document.querySelector("#camera");
   const debugSky = document.querySelector("#debugSky");
+  const iosVideo = document.querySelector("#iosCamera");
 
   if (!startBtn || !intro || !scene || !camera) return;
 
@@ -24,19 +25,29 @@ window.addEventListener("DOMContentLoaded", () => {
   let debugMode = false;
 
   // =====================================================
-  // AUDIO UNLOCK (REQUIRED FOR MOBILE)
+  // iOS CAMERA PASSTHROUGH (FAKE AR)
   // =====================================================
-  async function unlockAudio() {
-    const ctx = AFRAME.audioContext;
-    if (ctx?.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {}
+  async function enableIOSCamera() {
+    if (!iosVideo) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
+
+      iosVideo.srcObject = stream;
+      iosVideo.style.display = "block";
+
+      // Make A-Frame transparent
+      scene.renderer.setClearColor(0x000000, 0);
+    } catch (e) {
+      console.warn("iOS camera failed:", e);
     }
   }
 
   // =====================================================
-  // INTRO FINISH (NATURAL OR X)
+  // INTRO FINISH
   // =====================================================
   function finishIntro() {
     if (!window.__CURRENT_AUDIO_ENTITY__) return;
@@ -46,8 +57,6 @@ window.addEventListener("DOMContentLoaded", () => {
     } catch {}
 
     window.__CURRENT_AUDIO_ENTITY__ = null;
-
-    // Spawn first path nodes
     scene.systems["path-manager"]?.spawnInitialDirections();
   }
 
@@ -55,72 +64,78 @@ window.addEventListener("DOMContentLoaded", () => {
   // START EXPERIENCE
   // =====================================================
   async function startExperience() {
-    // Fade out start overlay
+    // Hide overlay
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
-    setTimeout(() => {
-      overlay.style.display = "none";
-    }, 600);
+    setTimeout(() => (overlay.style.display = "none"), 600);
 
     // -----------------------------
-    // DESKTOP DEBUG MODE
+    // DESKTOP DEBUG
     // -----------------------------
     if (debugMode) {
       debugSky?.setAttribute("visible", "true");
       camera.setAttribute("wasd-controls", "enabled:true");
       camera.setAttribute("look-controls", "enabled:true");
       camera.setAttribute("position", "0 1.6 0");
+      return;
     }
 
     // -----------------------------
-    // ANDROID AR ONLY (NO DEBUG)
+    // ANDROID AR
     // -----------------------------
-    if (!debugMode && !window.IS_IOS && scene.enterAR) {
+    if (!window.IS_IOS && scene.enterAR) {
       try {
         await scene.enterAR();
       } catch (e) {
-        console.warn("AR failed to start", e);
+        console.warn("AR failed:", e);
       }
     }
 
     // -----------------------------
-    // INTRO AUDIO
+    // iOS FAKE AR
     // -----------------------------
-    if (!introPlayed) {
-      introPlayed = true;
-      window.__CURRENT_AUDIO_ENTITY__ = intro;
-
-      intro.components.sound.playSound();
-      intro.addEventListener("sound-ended", finishIntro, { once: true });
+    if (window.IS_IOS) {
+      debugSky?.setAttribute("visible", "false");
+      await enableIOSCamera();
     }
   }
 
   // =====================================================
-  // START BUTTON
+  // START BUTTON (IMPORTANT: AUDIO MUST START HERE)
   // =====================================================
-  startBtn.addEventListener("click", async (e) => {
+  startBtn.addEventListener("click", (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
 
-    await unlockAudio();
+    // 🔑 iOS AUDIO UNLOCK + PLAY MUST BE SYNC
+    const ctx = AFRAME.audioContext;
+    if (ctx?.state === "suspended") {
+      ctx.resume();
+    }
+
+    if (!introPlayed) {
+      introPlayed = true;
+      window.__CURRENT_AUDIO_ENTITY__ = intro;
+      intro.components.sound.playSound();
+      intro.addEventListener("sound-ended", finishIntro, { once: true });
+    }
+
     startExperience();
   });
 
   // =====================================================
-  // DESKTOP — X FINISHES CURRENT AUDIO ONLY
+  // DESKTOP — X FINISHES CURRENT AUDIO
   // =====================================================
   document.addEventListener(
     "keydown",
     (e) => {
       if (e.code !== "KeyX") return;
 
-      // Finish node audio
       if (window.__CURRENT_AUDIO_NODE__) {
         window.__CURRENT_AUDIO_NODE__.finish();
         return;
       }
 
-      // Finish intro audio
       if (window.__CURRENT_AUDIO_ENTITY__) {
         finishIntro();
       }
