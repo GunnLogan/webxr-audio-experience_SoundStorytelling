@@ -3,7 +3,7 @@ const STEP = 0.5;           // 50 cm
 const ROOT_DISTANCE = 1.2;  // 120 cm
 
 /* =====================================================
-   PATH GRAPH
+   PATH GRAPH — AUTHORITATIVE (LOGIC ONLY)
    ===================================================== */
 
 const PATH_GRAPH = {
@@ -60,11 +60,16 @@ const PATH_GRAPH = {
 AFRAME.registerSystem("path-manager", {
   init() {
     this.root = document.querySelector("#experienceRoot");
-    this.active = new Map();
-    this.played = new Set();
+    if (!this.root) {
+      console.error("[path-manager] #experienceRoot not found");
+      return;
+    }
+
+    this.active = new Map(); // currently visible nodes
+    this.played = new Set(); // completed node ids
   },
 
-  /* ---------------- ROOTS ---------------- */
+  /* ---------------- ROOT SPAWN ---------------- */
   spawnInitialDirections() {
     this.clearAll();
 
@@ -83,8 +88,12 @@ AFRAME.registerSystem("path-manager", {
     if (this.active.has(id) || this.played.has(id)) return;
 
     const def = PATH_GRAPH[id];
-    const el = document.createElement("a-sphere");
+    if (!def) {
+      console.warn("[path-manager] Missing graph entry:", id);
+      return;
+    }
 
+    const el = document.createElement("a-sphere");
     el.setAttribute("radius", 0.25);
     el.setAttribute("position", position);
     el.setAttribute("material", {
@@ -105,7 +114,7 @@ AFRAME.registerSystem("path-manager", {
     if (this.played.has(id)) return;
     this.played.add(id);
 
-    // Remove ALL other active nodes (siblings)
+    // remove siblings
     this.active.forEach((el, key) => {
       if (key !== id) el.remove();
     });
@@ -117,7 +126,8 @@ AFRAME.registerSystem("path-manager", {
       return;
     }
 
-    // Spawn next
+    if (!nextIds || nextIds.length === 0) return;
+
     if (nextIds.length === 1) {
       this.spawnNode(nextIds[0], this.forwardFromCamera(STEP));
     } else {
