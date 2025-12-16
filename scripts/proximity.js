@@ -14,6 +14,7 @@ AFRAME.registerComponent("path-node", {
 
     this.el.classList.add("clickable");
 
+    // iOS = tap only
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
     }
@@ -56,16 +57,19 @@ AFRAME.registerComponent("path-node", {
     this.el.setAttribute("visible", false);
 
     if (!this.sound?.components?.sound) {
-      this.forceFinish();
+      this.forceFinish(true);
       return;
     }
 
     this.sound.components.sound.playSound();
-    this._onEnded = () => this.forceFinish();
+
+    // ✅ NATURAL END → ADVANCE
+    this._onEnded = () => this.forceFinish(true);
     this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
   },
 
-  forceFinish() {
+  // 🔑 advance = true | false
+  forceFinish(advance = false) {
     if (this.finished) return;
     this.finished = true;
 
@@ -76,8 +80,10 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // ✅ ALWAYS ADVANCE STORY
-    this.system?.completeNode(this.data.id, this.data.next);
+    // ❌ SKIP → DO NOT ADVANCE
+    if (advance) {
+      this.system?.completeNode(this.data.id, this.data.next);
+    }
 
     this.el.remove();
   }
