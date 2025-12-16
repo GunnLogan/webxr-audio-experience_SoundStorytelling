@@ -7,6 +7,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const debugSky = document.querySelector("#debugSky");
   const iosVideo = document.querySelector("#iosCamera");
   const mobileSkipBtn = document.querySelector("#mobileSkipButton");
+  const debugHint = document.querySelector("#debugHint");
 
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -17,39 +18,35 @@ window.addEventListener("DOMContentLoaded", () => {
   let longPressTimer = null;
 
   /* =====================================================
-     GLOBAL SHARED STATE (SAFE SINGLETONS)
+     GLOBAL SHARED STATE
      ===================================================== */
   window.__DEBUG_MODE__ = false;
   window.__CURRENT_AUDIO_NODE__ = null;
   window.__CURRENT_AUDIO_ENTITY__ = null;
 
   /* =====================================================
-     DEBUG HINT (CREATE IF MISSING)
+     HELPERS — DEBUG UI
      ===================================================== */
-  let debugHint = document.querySelector("#debugHint");
-  if (!debugHint) {
-    debugHint = document.createElement("div");
-    debugHint.id = "debugHint";
-    debugHint.textContent = "PRESS X TO SKIP AUDIO";
-    document.body.appendChild(debugHint);
+  function showSkipHint() {
+    if (window.__DEBUG_MODE__) {
+      debugHint?.classList.add("visible");
+    }
+  }
+
+  function hideSkipHint() {
+    debugHint?.classList.remove("visible");
   }
 
   /* =====================================================
-     WASD — HARD RESET (A-FRAME SAFE)
+     WASD (DEBUG ONLY)
      ===================================================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
-
-    // HARD RESET REQUIRED BY A-FRAME
-    camera.removeAttribute("wasd-controls");
-
-    if (enabled) {
-      camera.setAttribute("wasd-controls", {
-        enabled: true,
-        fly: true,
-        acceleration: 35
-      });
-    }
+    camera.setAttribute("wasd-controls", {
+      enabled,
+      fly: true,
+      acceleration: 35
+    });
   }
 
   /* =====================================================
@@ -76,8 +73,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
-
-      // Transparent A-Frame canvas
       scene.renderer.setClearColor(0x000000, 0);
     } catch (e) {
       console.warn("iOS camera failed", e);
@@ -90,9 +85,7 @@ window.addEventListener("DOMContentLoaded", () => {
   function enableDebugControls() {
     debugSky?.setAttribute("visible", "true");
     camera.setAttribute("look-controls", "enabled:true");
-
     setWASDEnabled(true);
-    debugHint.classList.add("visible");
   }
 
   /* =====================================================
@@ -103,35 +96,30 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
-    // Android / Desktop WebXR
     if (!debugMode && scene.enterAR && !isIOS) {
       try { await scene.enterAR(); } catch {}
     }
 
-    // iOS fallback
     if (!debugMode && isIOS) {
       await enableIOSCameraPassthrough();
     }
 
-    if (debugMode) {
-      enableDebugControls();
-    } else {
-      debugSky?.setAttribute("visible", "false");
-      debugHint.classList.remove("visible");
-    }
+    if (debugMode) enableDebugControls();
+    else debugSky?.setAttribute("visible", "false");
 
-    /* -------- INTRO AUDIO -------- */
     if (!introPlayed) {
       introPlayed = true;
-
       setWASDEnabled(false);
 
+      // 🔑 register intro as current audio
       window.__CURRENT_AUDIO_ENTITY__ = intro;
+      showSkipHint();
+
       intro.components.sound.playSound();
 
       intro.addEventListener("sound-ended", () => {
         window.__CURRENT_AUDIO_ENTITY__ = null;
-
+        hideSkipHint();
         setWASDEnabled(true);
         scene.systems["path-manager"]?.spawnInitialDirections();
       }, { once: true });
@@ -144,7 +132,6 @@ window.addEventListener("DOMContentLoaded", () => {
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
-
     await unlockAudio();
     startExperience();
   });
@@ -163,35 +150,35 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     DESKTOP DEBUG — PRESS X TO SKIP AUDIO (FINAL)
+     DESKTOP DEBUG — PRESS X TO SKIP (AUDIO ONLY)
      ===================================================== */
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      if (!window.__DEBUG_MODE__) return;
-      if (e.code !== "KeyX") return;
+  document.addEventListener("keydown", (e) => {
+    if (!window.__DEBUG_MODE__) return;
+    if (e.code !== "KeyX") return;
 
-      console.log("⏭️ Skip audio (X)");
+    // ❌ nothing playing → do nothing
+    if (!window.__CURRENT_AUDIO_NODE__ && !window.__CURRENT_AUDIO_ENTITY__) {
+      return;
+    }
 
-      // Path-node audio
-      if (window.__CURRENT_AUDIO_NODE__) {
-        window.__CURRENT_AUDIO_NODE__.forceFinish();
-        window.__CURRENT_AUDIO_NODE__ = null;
-      }
+    // Path-node audio
+    if (window.__CURRENT_AUDIO_NODE__) {
+      window.__CURRENT_AUDIO_NODE__.forceFinish();
+      window.__CURRENT_AUDIO_NODE__ = null;
+      hideSkipHint();
+      setWASDEnabled(true);
+      return;
+    }
 
-      // Intro audio
-      if (window.__CURRENT_AUDIO_ENTITY__?.components?.sound) {
-        window.__CURRENT_AUDIO_ENTITY__.components.sound.stopSound();
-        window.__CURRENT_AUDIO_ENTITY__ = null;
-        scene.systems["path-manager"]?.spawnInitialDirections();
-      }
-
-      // 🔑 CRITICAL: restore WASD cleanly
-      setWASDEnabled(false);
-      setTimeout(() => setWASDEnabled(true), 0);
-    },
-    true // CAPTURE PHASE — required for A-Frame canvas
-  );
+    // Intro audio
+    if (window.__CURRENT_AUDIO_ENTITY__?.components?.sound) {
+      window.__CURRENT_AUDIO_ENTITY__.components.sound.stopSound();
+      window.__CURRENT_AUDIO_ENTITY__ = null;
+      hideSkipHint();
+      setWASDEnabled(true);
+      scene.systems["path-manager"]?.spawnInitialDirections();
+    }
+  }, true);
 
   /* =====================================================
      MOBILE SKIP BUTTON
@@ -201,6 +188,7 @@ window.addEventListener("DOMContentLoaded", () => {
     mobileSkipBtn.addEventListener("click", () => {
       if (window.__CURRENT_AUDIO_NODE__) {
         window.__CURRENT_AUDIO_NODE__.forceFinish();
+        hideSkipHint();
       }
     });
   }
