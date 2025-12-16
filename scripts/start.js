@@ -24,28 +24,22 @@ window.addEventListener("DOMContentLoaded", () => {
   let debugMode = false;
 
   // =====================================================
-  // AUDIO UNLOCK (CRITICAL)
+  // AUDIO UNLOCK
   // =====================================================
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
     if (ctx?.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {}
+      try { await ctx.resume(); } catch {}
     }
   }
 
   // =====================================================
-  // INTRO FINISH (SAFE + IDEMPOTENT)
+  // INTRO FINISH (NATURAL OR X)
   // =====================================================
   function finishIntro() {
     if (!window.__CURRENT_AUDIO_ENTITY__) return;
 
-    try {
-      intro.components.sound.stopSound();
-    } catch {}
-
-    intro.removeEventListener("sound-ended", finishIntro);
+    try { intro.components.sound.stopSound(); } catch {}
 
     window.__CURRENT_AUDIO_ENTITY__ = null;
 
@@ -56,31 +50,34 @@ window.addEventListener("DOMContentLoaded", () => {
   // START EXPERIENCE
   // =====================================================
   async function startExperience() {
-    // Hide overlay BEFORE XR
+    // Hide overlay BEFORE any XR calls
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
-    setTimeout(() => (overlay.style.display = "none"), 600);
-
-    document.querySelector("#infoButton")?.classList.add("disabled");
+    setTimeout(() => overlay.style.display = "none", 600);
 
     // -----------------------------
     // DESKTOP DEBUG MODE
     // -----------------------------
     if (debugMode) {
       debugSky?.setAttribute("visible", "true");
+
       camera.setAttribute("wasd-controls", "enabled:true");
       camera.setAttribute("look-controls", "enabled:true");
       camera.setAttribute("position", "0 1.6 0");
+
+      // ❌ NEVER enter AR in desktop debug
     }
 
     // -----------------------------
     // ANDROID AR ONLY
     // -----------------------------
-    if (!debugMode && !window.IS_IOS && scene.enterAR) {
-      try {
-        await scene.enterAR();
-      } catch (e) {
-        console.warn("AR failed to start", e);
+    if (!debugMode && !window.IS_IOS) {
+      if (scene.enterAR) {
+        try {
+          await scene.enterAR();
+        } catch (e) {
+          console.warn("AR failed to start", e);
+        }
       }
     }
 
@@ -89,10 +86,8 @@ window.addEventListener("DOMContentLoaded", () => {
     // -----------------------------
     if (!introPlayed) {
       introPlayed = true;
-
-      await unlockAudio(); // 🔑 REQUIRED
-
       window.__CURRENT_AUDIO_ENTITY__ = intro;
+
       intro.components.sound.playSound();
       intro.addEventListener("sound-ended", finishIntro, { once: true });
     }
@@ -112,37 +107,18 @@ window.addEventListener("DOMContentLoaded", () => {
   // =====================================================
   // DESKTOP — X FINISHES CURRENT AUDIO ONLY
   // =====================================================
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      if (e.code !== "KeyX") return;
+  document.addEventListener("keydown", (e) => {
+    if (e.code !== "KeyX") return;
 
-      if (window.__CURRENT_AUDIO_NODE__) {
-        window.__CURRENT_AUDIO_NODE__.finish();
-        return;
-      }
+    // Finish node audio
+    if (window.__CURRENT_AUDIO_NODE__) {
+      window.__CURRENT_AUDIO_NODE__.finish();
+      return;
+    }
 
-      if (window.__CURRENT_AUDIO_ENTITY__) {
-        finishIntro();
-      }
-    },
-    true
-  );
-
-  // =====================================================
-  // INFO POSTER — ONE TIME REVEAL
-  // =====================================================
-  const infoButton = document.querySelector("#infoButton");
-  const posterOverlay = document.querySelector("#posterOverlay");
-
-  if (infoButton && posterOverlay) {
-    infoButton.addEventListener("click", () => {
-      posterOverlay.classList.add("visible");
-      infoButton.classList.add("disabled");
-
-      setTimeout(() => {
-        posterOverlay.classList.remove("visible");
-      }, 5000);
-    });
-  }
+    // Finish intro audio
+    if (window.__CURRENT_AUDIO_ENTITY__) {
+      finishIntro();
+    }
+  }, true);
 });
