@@ -18,15 +18,16 @@ window.addEventListener("DOMContentLoaded", () => {
   let debugMode = false;
   let longPressTimer = null;
 
-  // 🌍 GLOBAL FLAGS (shared with proximity.js)
+  // 🌍 Global debug + audio state
   window.__DEBUG_MODE__ = false;
-  window.__CURRENT_AUDIO__ = null;
+  window.__CURRENT_AUDIO_NODE__ = null;
 
   /* ===============================
      WASD (DEBUG ONLY)
      =============================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
+
     camera.setAttribute("wasd-controls", {
       enabled,
       fly: true,
@@ -58,6 +59,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
+
+      // Make A-Frame transparent
       scene.renderer.domElement.style.background = "transparent";
     } catch (e) {
       console.warn("iOS camera access failed", e);
@@ -65,56 +68,24 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     DEBUG HUD (SKIP HINT)
-     =============================== */
-  function showDebugHint() {
-    const hint = document.createElement("div");
-    hint.textContent = "DEBUG: Press X to skip audio";
-    Object.assign(hint.style, {
-      position: "fixed",
-      bottom: "16px",
-      right: "16px",
-      padding: "6px 10px",
-      fontSize: "0.7rem",
-      letterSpacing: "0.08em",
-      background: "rgba(0,0,0,0.6)",
-      color: "#fff",
-      borderRadius: "6px",
-      zIndex: "10001",
-      pointerEvents: "none"
-    });
-    document.body.appendChild(hint);
-  }
-
-  /* ===============================
      DEBUG CONTROLS
      =============================== */
   function enableDebugControls() {
     debugSky?.setAttribute("visible", "true");
+
     camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
+
     setWASDEnabled(true);
-    showDebugHint();
-  }
 
-  /* ===============================
-     SKIP AUDIO (DEBUG ONLY)
-     =============================== */
-  window.addEventListener("keydown", (e) => {
-  if (!window.__DEBUG_MODE__) return;
-
-  // X key skips current audio
-  if (e.code === "KeyX") {
-    const playingSounds = document.querySelectorAll("[sound]");
-    playingSounds.forEach(el => {
-      const sound = el.components?.sound;
-      if (sound && sound.isPlaying) {
-        sound.stopSound();
-      }
+    // Q / E vertical movement
+    window.addEventListener("keydown", (e) => {
+      if (!window.__DEBUG_MODE__) return;
+      const pos = camera.object3D.position;
+      if (e.code === "KeyQ") pos.y += 0.1;
+      if (e.code === "KeyE") pos.y -= 0.1;
     });
   }
-});
-
 
   /* ===============================
      START EXPERIENCE
@@ -124,12 +95,12 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
-    // ANDROID → WebXR AR
+    // Android → WebXR AR
     if (!debugMode && scene.enterAR && !isIOS) {
       try { await scene.enterAR(); } catch {}
     }
 
-    // iOS → camera passthrough
+    // iOS → camera passthrough fallback
     if (!debugMode && isIOS) {
       await enableIOSCameraPassthrough();
     }
@@ -142,22 +113,27 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!introPlayed) {
       introPlayed = true;
+
+      // Freeze WASD during intro (debug only)
       setWASDEnabled(false);
 
-      window.__CURRENT_AUDIO__ = intro;
       intro.components.sound.playSound();
-
-      intro.addEventListener("sound-ended", () => {
-        window.__CURRENT_AUDIO__ = null;
-        setWASDEnabled(true);
-        scene.systems["path-manager"]?.spawnInitialDirections();
-      }, { once: true });
+      intro.addEventListener(
+        "sound-ended",
+        () => {
+          setWASDEnabled(true);
+          scene.systems["path-manager"]?.spawnInitialDirections();
+        },
+        { once: true }
+      );
     }
   }
 
   /* ===============================
      INPUT
      =============================== */
+
+  // Desktop click (Shift = debug)
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
@@ -165,6 +141,7 @@ window.addEventListener("DOMContentLoaded", () => {
     startExperience();
   });
 
+  // Mobile long-press = debug
   startBtn.addEventListener("touchstart", () => {
     longPressTimer = setTimeout(() => {
       debugMode = true;
@@ -176,5 +153,25 @@ window.addEventListener("DOMContentLoaded", () => {
     clearTimeout(longPressTimer);
     await unlockAudio();
     startExperience();
+  });
+
+  /* ===============================
+     DEBUG: X KEY SKIP AUDIO
+     =============================== */
+  window.addEventListener("keydown", (e) => {
+    if (!window.__DEBUG_MODE__) return;
+    if (e.code !== "KeyX") return;
+
+    const node = window.__CURRENT_AUDIO_NODE__;
+    if (!node || !node.sound?.components?.sound) return;
+
+    console.log("⏭️ Debug skip audio");
+
+    try {
+      node.sound.components.sound.stopSound();
+    } catch {}
+
+    setWASDEnabled(true);
+    node.finish();
   });
 });
