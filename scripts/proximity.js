@@ -1,24 +1,25 @@
 AFRAME.registerComponent("path-node", {
   schema: {
     id: { type: "string" },
-    next: { type: "array", default: [] },
-    triggerDistance: { type: "number", default: 0.75 }
+    next: { type: "array" },
+    triggerDistance: { default: 0.75 }
   },
 
   init() {
     this.triggered = false;
     this.finished = false;
-    this.system = this.el.sceneEl.systems["path-manager"];
-    this.sound = null;
+    this.disabled = false;
 
+    this.system = this.el.sceneEl.systems["path-manager"];
     this.el.classList.add("clickable");
 
+    // iPhone: tap only
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
+      this.el.addEventListener("touchstart", () => this.handleTrigger());
     }
 
-    if (this.data.id === "explore_more") return;
-
+    // Load audio if it exists
     const src = `assets/audio/${this.data.id}.wav`;
     this.sound = document.createElement("a-entity");
     this.sound.setAttribute("sound", {
@@ -29,37 +30,32 @@ AFRAME.registerComponent("path-node", {
     this.el.appendChild(this.sound);
   },
 
+  disable() {
+    this.disabled = true;
+  },
+
   tick() {
+    // iPhone does not use distance triggers
     if (window.IS_IOS) return;
-    if (this.triggered) return;
+    if (this.triggered || this.disabled) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
-    const cam = this.el.sceneEl.camera?.el;
-    if (!cam) return;
+    const cam = this.el.sceneEl.camera.el.object3D;
+    const pos = this.el.object3D.position;
 
-    const camPos = new THREE.Vector3();
-    const nodePos = new THREE.Vector3();
-    cam.object3D.getWorldPosition(camPos);
-    this.el.object3D.getWorldPosition(nodePos);
-
-    if (camPos.distanceTo(nodePos) < this.data.triggerDistance) {
+    if (cam.position.distanceTo(pos) < this.data.triggerDistance) {
       this.handleTrigger();
     }
   },
 
   handleTrigger() {
-    if (this.triggered) return;
+    if (this.triggered || this.disabled) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
     this.triggered = true;
     window.__CURRENT_AUDIO_NODE__ = this;
 
-    // 🔥 IMMEDIATELY REMOVE SIBLING ROOTS
-    this.system.active.forEach((el, key) => {
-      if (key !== this.data.id) el.remove();
-    });
-    this.system.active.clear();
-
+    // Hide node visually but keep it managed
     this.el.setAttribute("visible", false);
 
     if (!this.sound?.components?.sound) {
@@ -68,11 +64,7 @@ AFRAME.registerComponent("path-node", {
     }
 
     this.sound.components.sound.playSound();
-    this.sound.addEventListener(
-      "sound-ended",
-      () => this.finish(),
-      { once: true }
-    );
+    this.sound.addEventListener("sound-ended", () => this.finish(), { once: true });
   },
 
   finish() {
@@ -80,14 +72,12 @@ AFRAME.registerComponent("path-node", {
     this.finished = true;
 
     try {
-      this.sound?.components?.sound?.stopSound();
+      this.sound.components.sound.stopSound();
     } catch {}
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // ✅ ALWAYS ADVANCE (natural OR X)
+    // Delegate progression to path-manager
     this.system.completeNode(this.data.id, this.data.next);
-
-    this.el.remove();
   }
 });
