@@ -7,7 +7,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const debugSky = document.querySelector("#debugSky");
   const iosVideo = document.querySelector("#iosCamera");
   const mobileSkipBtn = document.querySelector("#mobileSkipButton");
-  const debugHint = document.querySelector("#debugHint");
 
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -18,27 +17,43 @@ window.addEventListener("DOMContentLoaded", () => {
   let longPressTimer = null;
 
   /* =====================================================
-     GLOBAL SHARED STATE
+     GLOBAL SHARED STATE (SAFE SINGLETONS)
      ===================================================== */
   window.__DEBUG_MODE__ = false;
   window.__CURRENT_AUDIO_NODE__ = null;
   window.__CURRENT_AUDIO_ENTITY__ = null;
 
   /* =====================================================
-     WASD (DEBUG ONLY)
+     DEBUG HINT (CREATE IF MISSING)
+     ===================================================== */
+  let debugHint = document.querySelector("#debugHint");
+  if (!debugHint) {
+    debugHint = document.createElement("div");
+    debugHint.id = "debugHint";
+    debugHint.textContent = "PRESS X TO SKIP AUDIO";
+    document.body.appendChild(debugHint);
+  }
+
+  /* =====================================================
+     WASD — HARD RESET (A-FRAME SAFE)
      ===================================================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
 
-    camera.setAttribute("wasd-controls", {
-      enabled,
-      fly: true,
-      acceleration: 35
-    });
+    // HARD RESET REQUIRED BY A-FRAME
+    camera.removeAttribute("wasd-controls");
+
+    if (enabled) {
+      camera.setAttribute("wasd-controls", {
+        enabled: true,
+        fly: true,
+        acceleration: 35
+      });
+    }
   }
 
   /* =====================================================
-     AUDIO UNLOCK (MOBILE SAFETY)
+     AUDIO UNLOCK (MOBILE)
      ===================================================== */
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
@@ -75,8 +90,9 @@ window.addEventListener("DOMContentLoaded", () => {
   function enableDebugControls() {
     debugSky?.setAttribute("visible", "true");
     camera.setAttribute("look-controls", "enabled:true");
+
     setWASDEnabled(true);
-    debugHint?.classList.add("visible");
+    debugHint.classList.add("visible");
   }
 
   /* =====================================================
@@ -87,27 +103,35 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
+    // Android / Desktop WebXR
     if (!debugMode && scene.enterAR && !isIOS) {
       try { await scene.enterAR(); } catch {}
     }
 
+    // iOS fallback
     if (!debugMode && isIOS) {
       await enableIOSCameraPassthrough();
     }
 
-    if (debugMode) enableDebugControls();
-    else debugSky?.setAttribute("visible", "false");
+    if (debugMode) {
+      enableDebugControls();
+    } else {
+      debugSky?.setAttribute("visible", "false");
+      debugHint.classList.remove("visible");
+    }
 
+    /* -------- INTRO AUDIO -------- */
     if (!introPlayed) {
       introPlayed = true;
+
       setWASDEnabled(false);
 
-      // 🔑 Must be inside user gesture for iOS
       window.__CURRENT_AUDIO_ENTITY__ = intro;
       intro.components.sound.playSound();
 
       intro.addEventListener("sound-ended", () => {
         window.__CURRENT_AUDIO_ENTITY__ = null;
+
         setWASDEnabled(true);
         scene.systems["path-manager"]?.spawnInitialDirections();
       }, { once: true });
@@ -139,7 +163,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     DESKTOP DEBUG — PRESS X TO SKIP AUDIO (FIXED)
+     DESKTOP DEBUG — PRESS X TO SKIP AUDIO (FINAL)
      ===================================================== */
   document.addEventListener(
     "keydown",
@@ -162,14 +186,11 @@ window.addEventListener("DOMContentLoaded", () => {
         scene.systems["path-manager"]?.spawnInitialDirections();
       }
 
-      // ✅ HARD RE-ENABLE WASD (critical fix)
-      camera.setAttribute("wasd-controls", {
-        enabled: true,
-        fly: true,
-        acceleration: 35
-      });
+      // 🔑 CRITICAL: restore WASD cleanly
+      setWASDEnabled(false);
+      setTimeout(() => setWASDEnabled(true), 0);
     },
-    true // capture phase — required for A-Frame canvas
+    true // CAPTURE PHASE — required for A-Frame canvas
   );
 
   /* =====================================================
