@@ -1,3 +1,5 @@
+window.IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 window.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.querySelector("#startButton");
   const overlay = document.querySelector("#startOverlay");
