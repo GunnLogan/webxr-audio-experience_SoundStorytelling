@@ -56,23 +56,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     iOS CAMERA
-     ===================================================== */
-  async function enableIOSCameraPassthrough() {
-    if (!iosVideo) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false
-      });
-      iosVideo.srcObject = stream;
-      iosVideo.style.display = "block";
-      scene.renderer.setClearColor(0x000000, 0);
-    } catch {}
-  }
-
-  /* =====================================================
-     INTRO FINISH (AUTHORITATIVE)
+     INTRO FINISH (NATURAL ONLY)
      ===================================================== */
   function finishIntro() {
     try { intro.components.sound.stopSound(); } catch {}
@@ -84,8 +68,6 @@ window.addEventListener("DOMContentLoaded", () => {
     setWASDEnabled(true);
 
     scene.systems["path-manager"]?.spawnInitialDirections();
-
-    // 🔥 re-arm proximity AFTER real audio finish
     scene.emit("audio-finished");
   }
 
@@ -96,14 +78,6 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
     setTimeout(() => overlay.style.display = "none", 600);
-
-    if (!debugMode && scene.enterAR && !window.IS_IOS) {
-      try { await scene.enterAR(); } catch {}
-    }
-
-    if (!debugMode && window.IS_IOS) {
-      await enableIOSCameraPassthrough();
-    }
 
     if (debugMode) {
       debugSky?.setAttribute("visible", "true");
@@ -134,21 +108,8 @@ window.addEventListener("DOMContentLoaded", () => {
     startExperience();
   });
 
-  startBtn.addEventListener("touchstart", () => {
-    longPressTimer = setTimeout(() => {
-      debugMode = true;
-      window.__DEBUG_MODE__ = true;
-    }, 800);
-  });
-
-  startBtn.addEventListener("touchend", async () => {
-    clearTimeout(longPressTimer);
-    await unlockAudio();
-    startExperience();
-  });
-
   /* =====================================================
-     DESKTOP — X ONLY IF AUDIO IS PLAYING
+     DESKTOP — X STOPS AUDIO ONLY
      ===================================================== */
   document.addEventListener("keydown", (e) => {
     if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
@@ -158,31 +119,31 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!hasNode && !hasIntro) return;
 
     if (hasNode) {
-      window.__CURRENT_AUDIO_NODE__.forceFinish();
-      scene.emit("audio-finished");
+      window.__CURRENT_AUDIO_NODE__.forceFinish(true); // 🔥 forced
       hideSkipHint();
       setWASDEnabled(true);
       return;
     }
 
     if (hasIntro) {
-      finishIntro();
+      try { intro.components.sound.stopSound(); } catch {}
+      window.__CURRENT_AUDIO_ENTITY__ = null;
+      hideSkipHint();
+      setWASDEnabled(true);
+      scene.emit("audio-finished");
     }
   }, true);
 
   /* =====================================================
-     MOBILE SKIP (SAME RULES AS X)
+     MOBILE SKIP — SAME RULE
      ===================================================== */
   mobileSkipBtn?.addEventListener("click", () => {
-    const hasNode = !!window.__CURRENT_AUDIO_NODE__;
-    const hasIntro = !!window.__CURRENT_AUDIO_ENTITY__;
-    if (!hasNode && !hasIntro) return;
-
-    if (hasNode) {
-      window.__CURRENT_AUDIO_NODE__.forceFinish();
+    if (window.__CURRENT_AUDIO_NODE__) {
+      window.__CURRENT_AUDIO_NODE__.forceFinish(true);
+    } else if (window.__CURRENT_AUDIO_ENTITY__) {
+      try { intro.components.sound.stopSound(); } catch {}
+      window.__CURRENT_AUDIO_ENTITY__ = null;
       scene.emit("audio-finished");
-    } else {
-      finishIntro();
     }
   });
 });
