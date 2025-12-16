@@ -1,12 +1,8 @@
-// 🌍 Global reference to currently playing node (DEBUG ONLY)
-window.__CURRENT_AUDIO_NODE__ = null;
-
-
 /* =====================================================
    WASD CONTROL HELPER (DEBUG ONLY)
    ===================================================== */
 function setWASDEnabled(enabled) {
-  if (!window.__DEBUG_MODE__) return; // 🔒 never affect mobile AR
+  if (!window.__DEBUG_MODE__) return;
 
   const camera = document.querySelector("#camera");
   if (!camera) return;
@@ -21,7 +17,6 @@ function setWASDEnabled(enabled) {
 /* =====================================================
    SOFT PULSE + GENTLE BOUNCE
    ===================================================== */
-
 AFRAME.registerComponent("soft-pulse", {
   schema: {
     scaleMin: { type: "number", default: 0.97 },
@@ -57,7 +52,6 @@ AFRAME.registerComponent("soft-pulse", {
 /* =====================================================
    GUIDANCE GLOW
    ===================================================== */
-
 AFRAME.registerComponent("guidance-glow", {
   init() {
     this.el.setAttribute("material", "emissive", "#ffffff");
@@ -82,9 +76,8 @@ AFRAME.registerComponent("guidance-glow", {
 
 /* =====================================================
    PATH NODE
-   (explore_more is the ONLY silent node)
+   explore_more is the ONLY silent node
    ===================================================== */
-
 AFRAME.registerComponent("path-node", {
   schema: {
     id: { type: "string" },
@@ -96,7 +89,7 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
 
-    // 🔇 explore_more is intentionally silent
+    // Silent node
     if (this.data.id === "explore_more") return;
 
     const audioSrc = `assets/audio/${this.data.id}.wav`;
@@ -130,36 +123,39 @@ AFRAME.registerComponent("path-node", {
 
       this.el.setAttribute("visible", false);
 
-      if (this.sound?.components?.sound) {
-        // 🔒 Freeze WASD only in desktop debug
-        setWASDEnabled(false);
-
-        // 🔑 Register globally so S-key can skip it
-        window.__CURRENT_AUDIO__ = this.sound;
-
-        this.sound.components.sound.playSound();
-
-        this.sound.addEventListener(
-          "sound-ended",
-          () => {
-            window.__CURRENT_AUDIO__ = null;
-            setWASDEnabled(true);
-            this.finish();
-          },
-          { once: true }
-        );
-      } else {
+      if (!this.sound?.components?.sound) {
         this.finish();
+        return;
       }
+
+      // Freeze WASD (debug only)
+      setWASDEnabled(false);
+
+      // Register active audio
+      window.__CURRENT_AUDIO_NODE__ = this;
+
+      this.sound.components.sound.playSound();
+      this.sound.addEventListener(
+        "sound-ended",
+        () => {
+          window.__CURRENT_AUDIO_NODE__ = null;
+          setWASDEnabled(true);
+          this.finish();
+        },
+        { once: true }
+      );
     }
   },
 
   finish() {
+    window.__CURRENT_AUDIO_NODE__ = null;
+
     this.system?.completeNode(
       this.data.id,
       this.data.next,
       this.el.object3D.position
     );
+
     this.el.remove();
   }
 });
