@@ -80,21 +80,26 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     INTRO FINISH (SINGLE SOURCE OF TRUTH)
+     INTRO FINISH — HARD RESET + REARM TRIGGERS
      ===================================================== */
   function finishIntro() {
-    if (!window.__CURRENT_AUDIO_ENTITY__) return;
-
+    // Stop intro audio safely
     try {
       intro.components.sound.stopSound();
     } catch {}
 
+    // 🔥 HARD RESET AUDIO STATE
     window.__CURRENT_AUDIO_ENTITY__ = null;
+    window.__CURRENT_AUDIO_NODE__ = null;
+
     hideSkipHint();
     setWASDEnabled(true);
 
     // Spawn first nodes ONLY after intro finishes
     scene.systems["path-manager"]?.spawnInitialDirections();
+
+    // 🔥 CRITICAL: re-arm proximity triggers
+    scene.emit("audio-finished");
   }
 
   /* =====================================================
@@ -163,13 +168,16 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!window.__DEBUG_MODE__) return;
     if (e.code !== "KeyX") return;
 
+    // Path-node audio
     if (window.__CURRENT_AUDIO_NODE__) {
       window.__CURRENT_AUDIO_NODE__.forceFinish();
       hideSkipHint();
       setWASDEnabled(true);
+      scene.emit("audio-finished");
       return;
     }
 
+    // Intro audio
     if (window.__CURRENT_AUDIO_ENTITY__) {
       finishIntro();
     }
@@ -185,6 +193,7 @@ window.addEventListener("DOMContentLoaded", () => {
         window.__CURRENT_AUDIO_NODE__.forceFinish();
         hideSkipHint();
         setWASDEnabled(true);
+        scene.emit("audio-finished");
       } else if (window.__CURRENT_AUDIO_ENTITY__) {
         finishIntro();
       }
