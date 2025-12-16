@@ -16,12 +16,12 @@ AFRAME.registerComponent("path-node", {
 
     this.el.classList.add("clickable");
 
-    // iOS tap only
+    // iOS tap ONLY
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
     }
 
-    // 🔥 re-arm ONLY non-explore nodes
+    // 🔥 RE-ARM proximity ONLY for real nodes
     this._rearm = () => {
       if (this.isExploreMore) return;
       if (!this.finished) this.triggered = false;
@@ -57,42 +57,30 @@ AFRAME.registerComponent("path-node", {
     }
   },
 
-  disableSiblingNodes() {
-    if (this.isExploreMore) return;
-
-    document.querySelectorAll("[path-node]").forEach(el => {
-      if (el === this.el) return;
-      const comp = el.components["path-node"];
-      if (!comp || comp.finished) return;
-
-      comp.triggered = true;
-      el.setAttribute("visible", false);
-    });
-  },
-
   handleTrigger() {
     if (this.triggered) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
     this.triggered = true;
-
-    // 🔥 COMMIT CHOICE (unless explore_more)
-    this.disableSiblingNodes();
-
     window.__CURRENT_AUDIO_NODE__ = this;
     this.el.setAttribute("visible", false);
 
     if (!this.sound?.components?.sound) {
-      this.forceFinish();
+      this.forceFinish(false);
       return;
     }
 
     this.sound.components.sound.playSound();
-    this._onEnded = () => this.forceFinish();
+    this._onEnded = () => this.forceFinish(false); // ✅ natural end
     this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
   },
 
-  forceFinish() {
+  /* =====================================================
+     FINISH
+     forced = true  → stop audio ONLY
+     forced = false → advance story
+     ===================================================== */
+  forceFinish(forced = false) {
     if (this.finished) return;
     this.finished = true;
 
@@ -103,7 +91,11 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    this.system?.completeNode(this.data.id, this.data.next);
+    // ✅ ONLY advance if NOT forced
+    if (!forced) {
+      this.system?.completeNode(this.data.id, this.data.next);
+    }
+
     this.el.remove();
   },
 
