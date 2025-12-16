@@ -1,3 +1,5 @@
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 /* =====================================================
    SOFT PULSE + GENTLE BOUNCE
    ===================================================== */
@@ -37,8 +39,10 @@ AFRAME.registerComponent("soft-pulse", {
    ===================================================== */
 AFRAME.registerComponent("guidance-glow", {
   init() {
-    this.el.setAttribute("material", "emissive", "#ffffff");
-    this.el.setAttribute("material", "emissiveIntensity", 0.25);
+    this.el.setAttribute("material", {
+      emissive: "#ffffff",
+      emissiveIntensity: 0.25
+    });
 
     this.el.setAttribute("animation__glow", {
       property: "material.emissiveIntensity",
@@ -59,7 +63,9 @@ AFRAME.registerComponent("guidance-glow", {
 
 /* =====================================================
    PATH NODE
-   explore_more is the ONLY silent node
+   - iOS: TAP to trigger
+   - Android/Desktop: PROXIMITY
+   - explore_more is silent
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
@@ -73,6 +79,14 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
     this._onEnded = null;
+
+    // iOS: tap-to-trigger
+    if (IS_IOS) {
+      this.el.classList.add("clickable");
+      this.el.addEventListener("click", () => {
+        if (!this.triggered) this.trigger();
+      });
+    }
 
     // Silent node
     if (this.data.id === "explore_more") return;
@@ -94,33 +108,42 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    if (this.triggered) return;
+    // iOS does NOT use proximity
+    if (IS_IOS || this.triggered) return;
 
-    const cam = this.el.sceneEl.camera.el.object3D.position;
-    const pos = this.el.object3D.position;
+    const camPos = this.el.sceneEl.camera.el.object3D.position;
+    const nodePos = this.el.object3D.position;
 
-    if (cam.distanceTo(pos) < 0.75) {
-      this.triggered = true;
-
-      this.el.removeAttribute("guidance-glow");
-      this.el.setAttribute("visible", false);
-
-      window.__CURRENT_AUDIO_NODE__ = this;
-
-      if (!this.sound?.components?.sound) {
-        this.forceFinish();
-        return;
-      }
-
-      this.sound.components.sound.playSound();
-
-      this._onEnded = () => this.forceFinish();
-      this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
+    if (camPos.distanceTo(nodePos) < 0.75) {
+      this.trigger();
     }
   },
 
   /* =====================================================
-     SAFE FINISH — SINGLE ENTRY POINT
+     TRIGGER (shared by proximity & tap)
+     ===================================================== */
+  trigger() {
+    if (this.triggered) return;
+    this.triggered = true;
+
+    this.el.removeAttribute("guidance-glow");
+    this.el.setAttribute("visible", false);
+
+    // Register globally (for X key / mobile skip)
+    window.__CURRENT_AUDIO_NODE__ = this;
+
+    if (!this.sound?.components?.sound) {
+      this.forceFinish();
+      return;
+    }
+
+    this.sound.components.sound.playSound();
+    this._onEnded = () => this.forceFinish();
+    this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
+  },
+
+  /* =====================================================
+     SAFE FINISH — SINGLE EXIT POINT
      ===================================================== */
   forceFinish() {
     if (this.finished) return;
