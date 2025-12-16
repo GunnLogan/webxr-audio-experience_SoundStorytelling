@@ -3,26 +3,46 @@
    =============================== */
 #infoButton {
   position: fixed;
-  top: 14px;
-  right: 16px;
+  top: env(safe-area-inset-top, 14px);
+  right: env(safe-area-inset-right, 16px);
+
   width: 36px;
   height: 36px;
 
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  color: white;
-  font-size: 1.2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.55);
+
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.15rem;
   font-family: "Space Grotesk", sans-serif;
+
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 
   z-index: 10005;
-  transition: opacity 0.3s ease, transform 0.2s ease;
+
+  transition:
+    opacity 0.35s ease,
+    transform 0.2s ease,
+    background 0.2s ease;
 }
 
-#infoButton:hover {
-  transform: scale(1.05);
+/* Hover only on devices that actually hover */
+@media (hover: hover) {
+  #infoButton:hover {
+    transform: scale(1.05);
+    background: rgba(0, 0, 0, 0.75);
+  }
+}
+
+#infoButton:active {
+  transform: scale(0.96);
 }
 
 #infoButton.disabled {
@@ -36,7 +56,8 @@
 #posterOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+
+  background: rgba(0, 0, 0, 0.88);
 
   display: flex;
   align-items: center;
@@ -46,6 +67,7 @@
   pointer-events: none;
 
   z-index: 10004;
+
   transition: opacity 0.6s ease;
 }
 
@@ -54,11 +76,18 @@
   pointer-events: auto;
 }
 
+/* ===============================
+   POSTER IMAGE
+   =============================== */
 .poster-overlay-image {
-  width: 90%;
+  width: 92%;
   max-width: 520px;
   height: auto;
 
   border-radius: 6px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  /* Slightly softer than modal */
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
