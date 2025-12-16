@@ -55,8 +55,7 @@
   <!-- A-FRAME SCENE -->
   <a-scene
     renderer="alpha:true; colorManagement:true"
-    xr="ar: true; referenceSpaceType: local-floor;"
-    webxr="optionalFeatures: local-floor, hit-test;"
+    webxr="optionalFeatures: local-floor;"
     vr-mode-ui="enabled:false"
     ar-mode-ui="enabled:false"
   >
@@ -70,6 +69,8 @@
       camera
       look-controls="enabled:true"
       wasd-controls="enabled:false"
+      cursor="rayOrigin: mouse; fuse: false"
+      raycaster="objects: .clickable; far: 10"
       position="0 1.6 0"
     ></a-entity>
 
