@@ -7,38 +7,28 @@ window.addEventListener("DOMContentLoaded", () => {
   const debugSky = document.querySelector("#debugSky");
   const iosVideo = document.querySelector("#iosCamera");
   const mobileSkipBtn = document.querySelector("#mobileSkipButton");
+  const debugHint = document.querySelector("#debugHint");
 
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  if (!startBtn || !overlay || !intro || !scene || !camera) {
-    console.error("Start.js: required elements missing");
-    return;
-  }
+  if (!startBtn || !overlay || !intro || !scene || !camera) return;
 
   let introPlayed = false;
   let debugMode = false;
   let longPressTimer = null;
 
   /* =====================================================
-     GLOBAL SHARED STATE
+     GLOBAL AUDIO STATE
      ===================================================== */
   window.__DEBUG_MODE__ = false;
   window.__CURRENT_AUDIO_NODE__ = null;
+  window.__CURRENT_AUDIO_ENTITY__ = null;
 
   /* =====================================================
-     DEBUG HINT (CREATE ONCE)
-     ===================================================== */
-  const debugHint = document.createElement("div");
-  debugHint.id = "debugHint";
-  debugHint.textContent = "PRESS X TO SKIP AUDIO";
-  document.body.appendChild(debugHint);
-
-  /* =====================================================
-     WASD CONTROLS (DEBUG ONLY)
+     WASD (DEBUG ONLY)
      ===================================================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
-
     camera.setAttribute("wasd-controls", {
       enabled,
       fly: true,
@@ -46,9 +36,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* =====================================================
-     AUDIO UNLOCK
-     ===================================================== */
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
     if (ctx && ctx.state === "suspended") {
@@ -56,43 +43,26 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* =====================================================
-     iOS CAMERA PASSTHROUGH
-     ===================================================== */
   async function enableIOSCameraPassthrough() {
     if (!iosVideo) return;
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } },
         audio: false
       });
-
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
       scene.renderer.domElement.style.background = "transparent";
-    } catch (e) {
-      console.warn("iOS camera access failed", e);
-    }
+    } catch {}
   }
 
-  /* =====================================================
-     DEBUG CONTROLS
-     ===================================================== */
   function enableDebugControls() {
     debugSky?.setAttribute("visible", "true");
-
-    camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
     setWASDEnabled(true);
-
-    // ✅ SHOW DEBUG HINT
-    debugHint.classList.add("visible");
+    debugHint?.classList.add("visible");
   }
 
-  /* =====================================================
-     START EXPERIENCE
-     ===================================================== */
   async function startExperience() {
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
@@ -106,34 +76,32 @@ window.addEventListener("DOMContentLoaded", () => {
       await enableIOSCameraPassthrough();
     }
 
-    if (debugMode) {
-      enableDebugControls();
-    } else {
-      debugSky?.setAttribute("visible", "false");
-      debugHint.classList.remove("visible");
-    }
+    if (debugMode) enableDebugControls();
+    else debugSky?.setAttribute("visible", "false");
 
     if (!introPlayed) {
       introPlayed = true;
       setWASDEnabled(false);
 
+      // 🔑 Register intro as current audio
+      window.__CURRENT_AUDIO_ENTITY__ = intro;
+
       intro.components.sound.playSound();
 
       intro.addEventListener("sound-ended", () => {
+        window.__CURRENT_AUDIO_ENTITY__ = null;
         setWASDEnabled(true);
         scene.systems["path-manager"]?.spawnInitialDirections();
       }, { once: true });
     }
   }
 
-  /* =====================================================
-     INPUT — START
-     ===================================================== */
-
+  /* ===============================
+     START INPUT
+     =============================== */
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
-
     await unlockAudio();
     startExperience();
   });
@@ -151,34 +119,38 @@ window.addEventListener("DOMContentLoaded", () => {
     startExperience();
   });
 
-  /* =====================================================
-     DESKTOP DEBUG — X KEY SKIP (GUARANTEED)
-     ===================================================== */
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      if (!window.__DEBUG_MODE__) return;
-      if (e.code !== "KeyX") return;
+  /* ===============================
+     DESKTOP DEBUG — X SKIP (FINAL)
+     =============================== */
+  document.addEventListener("keydown", (e) => {
+    if (!window.__DEBUG_MODE__) return;
+    if (e.code !== "KeyX") return;
 
-      const node = window.__CURRENT_AUDIO_NODE__;
-      if (!node || typeof node.forceFinish !== "function") return;
+    console.log("⏭️ Skip requested (X)");
 
-      console.log("⏭️ Debug skip audio (X)");
-      node.forceFinish();
-    },
-    true // capture phase ensures it works over canvas
-  );
+    // Path-node audio
+    if (window.__CURRENT_AUDIO_NODE__) {
+      window.__CURRENT_AUDIO_NODE__.forceFinish();
+      return;
+    }
 
-  /* =====================================================
+    // Intro audio
+    if (window.__CURRENT_AUDIO_ENTITY__?.components?.sound) {
+      window.__CURRENT_AUDIO_ENTITY__.components.sound.stopSound();
+      window.__CURRENT_AUDIO_ENTITY__ = null;
+      scene.systems["path-manager"]?.spawnInitialDirections();
+    }
+  }, true);
+
+  /* ===============================
      MOBILE SKIP BUTTON
-     ===================================================== */
+     =============================== */
   if (mobileSkipBtn) {
     mobileSkipBtn.textContent = "SKIP AUDIO";
-
     mobileSkipBtn.addEventListener("click", () => {
-      const node = window.__CURRENT_AUDIO_NODE__;
-      if (!node || typeof node.forceFinish !== "function") return;
-      node.forceFinish();
+      if (window.__CURRENT_AUDIO_NODE__) {
+        window.__CURRENT_AUDIO_NODE__.forceFinish();
+      }
     });
   }
 });
