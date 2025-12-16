@@ -56,7 +56,25 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     INTRO FINISH (NATURAL ONLY)
+     iOS CAMERA PASSTHROUGH (ONLY iOS)
+     ===================================================== */
+  async function enableIOSCameraPassthrough() {
+    if (!iosVideo) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
+      iosVideo.srcObject = stream;
+      iosVideo.style.display = "block";
+      scene.renderer.setClearColor(0x000000, 0);
+    } catch (e) {
+      console.warn("iOS camera failed", e);
+    }
+  }
+
+  /* =====================================================
+     INTRO FINISH (NATURAL OR SKIPPED)
      ===================================================== */
   function finishIntro() {
     try { intro.components.sound.stopSound(); } catch {}
@@ -84,6 +102,20 @@ window.addEventListener("DOMContentLoaded", () => {
       setWASDEnabled(true);
     } else {
       debugSky?.setAttribute("visible", "false");
+
+      // 🤖 ANDROID — REAL WEBXR AR
+      if (!window.IS_IOS && scene.enterAR) {
+        try {
+          await scene.enterAR();
+        } catch (e) {
+          console.warn("Android AR failed to start", e);
+        }
+      }
+
+      // 🍎 iOS — FAKE PASSTHROUGH
+      if (window.IS_IOS) {
+        await enableIOSCameraPassthrough();
+      }
     }
 
     if (!introPlayed) {
@@ -99,11 +131,24 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     INPUT
+     START INPUT
      ===================================================== */
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
+    await unlockAudio();
+    startExperience();
+  });
+
+  startBtn.addEventListener("touchstart", () => {
+    longPressTimer = setTimeout(() => {
+      debugMode = true;
+      window.__DEBUG_MODE__ = true;
+    }, 800);
+  });
+
+  startBtn.addEventListener("touchend", async () => {
+    clearTimeout(longPressTimer);
     await unlockAudio();
     startExperience();
   });
@@ -114,23 +159,15 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
 
-    const hasNode = !!window.__CURRENT_AUDIO_NODE__;
-    const hasIntro = !!window.__CURRENT_AUDIO_ENTITY__;
-    if (!hasNode && !hasIntro) return;
-
-    if (hasNode) {
-      window.__CURRENT_AUDIO_NODE__.forceFinish(true); // 🔥 forced
+    if (window.__CURRENT_AUDIO_NODE__) {
+      window.__CURRENT_AUDIO_NODE__.forceFinish(true);
       hideSkipHint();
       setWASDEnabled(true);
       return;
     }
 
-    if (hasIntro) {
-      try { intro.components.sound.stopSound(); } catch {}
-      window.__CURRENT_AUDIO_ENTITY__ = null;
-      hideSkipHint();
-      setWASDEnabled(true);
-      scene.emit("audio-finished");
+    if (window.__CURRENT_AUDIO_ENTITY__) {
+      finishIntro();
     }
   }, true);
 
@@ -141,9 +178,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (window.__CURRENT_AUDIO_NODE__) {
       window.__CURRENT_AUDIO_NODE__.forceFinish(true);
     } else if (window.__CURRENT_AUDIO_ENTITY__) {
-      try { intro.components.sound.stopSound(); } catch {}
-      window.__CURRENT_AUDIO_ENTITY__ = null;
-      scene.emit("audio-finished");
+      finishIntro();
     }
   });
 });
