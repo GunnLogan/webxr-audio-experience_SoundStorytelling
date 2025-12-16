@@ -10,7 +10,7 @@
 
   <link rel="icon" href="data:," />
 
-  <!-- A-FRAME MUST LOAD FIRST -->
+  <!-- A-FRAME -->
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
   <!-- PROJECT SCRIPTS -->
@@ -18,7 +18,6 @@
   <script defer src="scripts/proximity.js"></script>
   <script defer src="scripts/start.js"></script>
 
-  <!-- STYLES -->
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 
@@ -26,46 +25,43 @@
 
   <!-- START OVERLAY -->
   <div id="startOverlay">
-  <div id="startButtons">
-
-  <div id="startTitle" class="placard">
-    <div class="title-main">ATOMBOMBEN PÅ ÖSTERMALM</div>
-    <div class="title-sub">– EN LJUDVANDRING –</div>
+    <div id="startButtons">
+      <div id="startTitle" class="placard">
+        <div class="title-main">ATOMBOMBEN PÅ ÖSTERMALM</div>
+        <div class="title-sub">– EN LJUDVANDRING –</div>
+      </div>
+      <button id="startButton">Starta</button>
+    </div>
   </div>
 
-    <button id="startButton">Starta</button>
+  <!-- iOS CAMERA PASSTHROUGH -->
+  <video
+    id="iosCamera"
+    autoplay
+    muted
+    playsinline
+    style="
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+      display: none;
+      background: black;
+    ">
+  </video>
 
-  </div>
-</div>
-  
-  <!-- IPHONE ONLY -->
-
-<video
-  id="iosCamera"
-  autoplay
-  muted
-  playsinline
-  style="
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -1;
-  display: none;
-  ">
-</video>
-  
   <!-- A-FRAME SCENE -->
   <a-scene
+    renderer="alpha:true; colorManagement:true"
     xr="ar: true; referenceSpaceType: local-floor;"
     webxr="optionalFeatures: local-floor, hit-test;"
-    renderer="colorManagement:true"
     vr-mode-ui="enabled:false"
     ar-mode-ui="enabled:false"
   >
 
-    <!-- DEBUG SKY (DESKTOP ONLY) -->
+    <!-- DEBUG SKY -->
     <a-sky id="debugSky" color="#777777" visible="false"></a-sky>
 
     <!-- CAMERA -->
