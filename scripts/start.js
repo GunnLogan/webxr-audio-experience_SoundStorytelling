@@ -1,3 +1,4 @@
+// ✅ DEFINE ONCE — GLOBAL, SAFE
 window.IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -11,8 +12,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const mobileSkipBtn = document.querySelector("#mobileSkipButton");
   const debugHint = document.querySelector("#debugHint");
 
-  const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
   if (!startBtn || !overlay || !intro || !scene || !camera) return;
 
   let introPlayed = false;
@@ -23,25 +22,20 @@ window.addEventListener("DOMContentLoaded", () => {
      GLOBAL SHARED STATE
      ===================================================== */
   window.__DEBUG_MODE__ = false;
-  window.__CURRENT_AUDIO_NODE__ = null;     // path-node
-  window.__CURRENT_AUDIO_ENTITY__ = null;   // intro only
+  window.__CURRENT_AUDIO_NODE__ = null;
+  window.__CURRENT_AUDIO_ENTITY__ = null;
 
   /* =====================================================
-     DEBUG UI
+     UI HELPERS
      ===================================================== */
   function showSkipHint() {
-    if (window.__DEBUG_MODE__) {
-      debugHint?.classList.add("visible");
-    }
+    if (window.__DEBUG_MODE__) debugHint?.classList.add("visible");
   }
 
   function hideSkipHint() {
     debugHint?.classList.remove("visible");
   }
 
-  /* =====================================================
-     WASD (DEBUG ONLY)
-     ===================================================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
     camera.setAttribute("wasd-controls", {
@@ -52,55 +46,46 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     AUDIO UNLOCK (MOBILE)
+     AUDIO UNLOCK
      ===================================================== */
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
-    if (ctx && ctx.state === "suspended") {
+    if (ctx?.state === "suspended") {
       try { await ctx.resume(); } catch {}
     }
   }
 
   /* =====================================================
-     iOS CAMERA PASSTHROUGH (OPTIONAL)
+     iOS CAMERA
      ===================================================== */
   async function enableIOSCameraPassthrough() {
     if (!iosVideo) return;
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } },
         audio: false
       });
-
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
       scene.renderer.setClearColor(0x000000, 0);
-    } catch (e) {
-      console.warn("iOS camera failed", e);
-    }
+    } catch {}
   }
 
   /* =====================================================
-     INTRO FINISH — HARD RESET + REARM TRIGGERS
+     INTRO FINISH (CRITICAL FIX)
      ===================================================== */
   function finishIntro() {
-    // Stop intro audio safely
-    try {
-      intro.components.sound.stopSound();
-    } catch {}
+    try { intro.components.sound.stopSound(); } catch {}
 
-    // 🔥 HARD RESET AUDIO STATE
     window.__CURRENT_AUDIO_ENTITY__ = null;
     window.__CURRENT_AUDIO_NODE__ = null;
 
     hideSkipHint();
     setWASDEnabled(true);
 
-    // Spawn first nodes ONLY after intro finishes
     scene.systems["path-manager"]?.spawnInitialDirections();
 
-    // 🔥 CRITICAL: re-arm proximity triggers
+    // 🔥 RE-ARM PROXIMITY
     scene.emit("audio-finished");
   }
 
@@ -110,19 +95,18 @@ window.addEventListener("DOMContentLoaded", () => {
   async function startExperience() {
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
-    setTimeout(() => (overlay.style.display = "none"), 600);
+    setTimeout(() => overlay.style.display = "none", 600);
 
-    if (!debugMode && scene.enterAR && !IS_IOS) {
+    if (!debugMode && scene.enterAR && !window.IS_IOS) {
       try { await scene.enterAR(); } catch {}
     }
 
-    if (!debugMode && IS_IOS) {
+    if (!debugMode && window.IS_IOS) {
       await enableIOSCameraPassthrough();
     }
 
     if (debugMode) {
       debugSky?.setAttribute("visible", "true");
-      camera.setAttribute("look-controls", "enabled:true");
       setWASDEnabled(true);
     } else {
       debugSky?.setAttribute("visible", "false");
@@ -141,7 +125,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     START INPUT
+     INPUT
      ===================================================== */
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
@@ -164,41 +148,33 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     DESKTOP DEBUG — PRESS X TO FINISH CURRENT AUDIO ONLY
+     SKIP (DESKTOP)
      ===================================================== */
   document.addEventListener("keydown", (e) => {
-    if (!window.__DEBUG_MODE__) return;
-    if (e.code !== "KeyX") return;
+    if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
 
-    // Path-node audio
     if (window.__CURRENT_AUDIO_NODE__) {
       window.__CURRENT_AUDIO_NODE__.forceFinish();
+      scene.emit("audio-finished");
       hideSkipHint();
       setWASDEnabled(true);
-      scene.emit("audio-finished");
       return;
     }
 
-    // Intro audio
     if (window.__CURRENT_AUDIO_ENTITY__) {
       finishIntro();
     }
   }, true);
 
   /* =====================================================
-     MOBILE SKIP BUTTON (SAME BEHAVIOR AS X)
+     SKIP (MOBILE)
      ===================================================== */
-  if (mobileSkipBtn) {
-    mobileSkipBtn.textContent = "SKIP AUDIO";
-    mobileSkipBtn.addEventListener("click", () => {
-      if (window.__CURRENT_AUDIO_NODE__) {
-        window.__CURRENT_AUDIO_NODE__.forceFinish();
-        hideSkipHint();
-        setWASDEnabled(true);
-        scene.emit("audio-finished");
-      } else if (window.__CURRENT_AUDIO_ENTITY__) {
-        finishIntro();
-      }
-    });
-  }
+  mobileSkipBtn?.addEventListener("click", () => {
+    if (window.__CURRENT_AUDIO_NODE__) {
+      window.__CURRENT_AUDIO_NODE__.forceFinish();
+      scene.emit("audio-finished");
+    } else if (window.__CURRENT_AUDIO_ENTITY__) {
+      finishIntro();
+    }
+  });
 });
