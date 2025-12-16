@@ -7,7 +7,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const debugSky = document.querySelector("#debugSky");
   const iosVideo = document.querySelector("#iosCamera");
   const mobileSkipBtn = document.querySelector("#mobileSkipButton");
-  const debugHint = document.querySelector("#debugHint");
 
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -27,6 +26,14 @@ window.addEventListener("DOMContentLoaded", () => {
   window.__CURRENT_AUDIO_NODE__ = null;
 
   /* =====================================================
+     DEBUG HINT (CREATE ONCE)
+     ===================================================== */
+  const debugHint = document.createElement("div");
+  debugHint.id = "debugHint";
+  debugHint.textContent = "PRESS X TO SKIP AUDIO";
+  document.body.appendChild(debugHint);
+
+  /* =====================================================
      WASD CONTROLS (DEBUG ONLY)
      ===================================================== */
   function setWASDEnabled(enabled) {
@@ -40,7 +47,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     AUDIO UNLOCK (MOBILE SAFETY)
+     AUDIO UNLOCK
      ===================================================== */
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
@@ -63,7 +70,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
-
       scene.renderer.domElement.style.background = "transparent";
     } catch (e) {
       console.warn("iOS camera access failed", e);
@@ -75,11 +81,13 @@ window.addEventListener("DOMContentLoaded", () => {
      ===================================================== */
   function enableDebugControls() {
     debugSky?.setAttribute("visible", "true");
+
     camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
     setWASDEnabled(true);
 
-    if (debugHint) debugHint.classList.add("visible");
+    // ✅ SHOW DEBUG HINT
+    debugHint.classList.add("visible");
   }
 
   /* =====================================================
@@ -90,12 +98,10 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
-    // Android WebXR
     if (!debugMode && scene.enterAR && !isIOS) {
       try { await scene.enterAR(); } catch {}
     }
 
-    // iOS fallback
     if (!debugMode && isIOS) {
       await enableIOSCameraPassthrough();
     }
@@ -104,7 +110,7 @@ window.addEventListener("DOMContentLoaded", () => {
       enableDebugControls();
     } else {
       debugSky?.setAttribute("visible", "false");
-      debugHint?.classList.remove("visible");
+      debugHint.classList.remove("visible");
     }
 
     if (!introPlayed) {
@@ -113,23 +119,21 @@ window.addEventListener("DOMContentLoaded", () => {
 
       intro.components.sound.playSound();
 
-      intro.addEventListener(
-        "sound-ended",
-        () => {
-          setWASDEnabled(true);
-          scene.systems["path-manager"]?.spawnInitialDirections();
-        },
-        { once: true }
-      );
+      intro.addEventListener("sound-ended", () => {
+        setWASDEnabled(true);
+        scene.systems["path-manager"]?.spawnInitialDirections();
+      }, { once: true });
     }
   }
 
   /* =====================================================
      INPUT — START
      ===================================================== */
+
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
+
     await unlockAudio();
     startExperience();
   });
@@ -162,7 +166,7 @@ window.addEventListener("DOMContentLoaded", () => {
       console.log("⏭️ Debug skip audio (X)");
       node.forceFinish();
     },
-    true // capture phase — beats A-Frame canvas
+    true // capture phase ensures it works over canvas
   );
 
   /* =====================================================
@@ -174,8 +178,6 @@ window.addEventListener("DOMContentLoaded", () => {
     mobileSkipBtn.addEventListener("click", () => {
       const node = window.__CURRENT_AUDIO_NODE__;
       if (!node || typeof node.forceFinish !== "function") return;
-
-      console.log("⏭️ Mobile skip audio");
       node.forceFinish();
     });
   }
