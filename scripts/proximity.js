@@ -1,25 +1,8 @@
 /* =====================================================
-   WASD CONTROL HELPER (DEBUG ONLY)
-   ===================================================== */
-function setWASDEnabled(enabled) {
-  if (!window.__DEBUG_MODE__) return;
-
-  const camera = document.querySelector("#camera");
-  if (!camera) return;
-
-  camera.setAttribute("wasd-controls", {
-    enabled,
-    fly: true,
-    acceleration: 35
-  });
-}
-
-/* =====================================================
    SOFT PULSE + GENTLE BOUNCE
    ===================================================== */
 AFRAME.registerComponent("soft-pulse", {
   schema: {
-    scaleMin: { type: "number", default: 0.97 },
     scaleMax: { type: "number", default: 1.03 },
     bounce: { type: "number", default: 0.025 },
     duration: { type: "number", default: 2600 }
@@ -86,6 +69,7 @@ AFRAME.registerComponent("path-node", {
 
   init() {
     this.triggered = false;
+    this.finished = false;
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
 
@@ -116,40 +100,40 @@ AFRAME.registerComponent("path-node", {
 
     if (cam.distanceTo(pos) < 0.75) {
       this.triggered = true;
+
       this.el.removeAttribute("guidance-glow");
-
-      this.system?.lockRootPath?.(this.data.id);
-      this.system?.lockChoice?.(this.data.id);
-
       this.el.setAttribute("visible", false);
 
-      // No audio → finish immediately
+      window.__CURRENT_AUDIO_NODE__ = this;
+
       if (!this.sound?.components?.sound) {
-        this.finish();
+        this.forceFinish();
         return;
       }
 
-      // Freeze movement (debug only)
-      setWASDEnabled(false);
-
-      // Register current audio node
-      window.__CURRENT_AUDIO_NODE__ = this;
-
       this.sound.components.sound.playSound();
-      this.sound.addEventListener(
-        "sound-ended",
-        () => {
-          window.__CURRENT_AUDIO_NODE__ = null;
-          setWASDEnabled(true);
-          this.finish();
-        },
-        { once: true }
-      );
+
+      this._onEnded = () => this.forceFinish();
+      this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
     }
   },
 
-  finish() {
+  /* ===============================
+     SAFE FINISH (ONLY ONCE)
+     =============================== */
+  forceFinish() {
+    if (this.finished) return;
+    this.finished = true;
+
+    try {
+      this.sound?.components?.sound?.stopSound();
+      this.sound?.removeEventListener("sound-ended", this._onEnded);
+    } catch {}
+
     window.__CURRENT_AUDIO_NODE__ = null;
+
+    this.system?.lockRootPath?.(this.data.id);
+    this.system?.lockChoice?.(this.data.id);
 
     this.system?.completeNode(
       this.data.id,
