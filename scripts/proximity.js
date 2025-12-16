@@ -72,6 +72,7 @@ AFRAME.registerComponent("path-node", {
     this.finished = false;
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
+    this._onEnded = null;
 
     // Silent node
     if (this.data.id === "explore_more") return;
@@ -118,9 +119,9 @@ AFRAME.registerComponent("path-node", {
     }
   },
 
-  /* ===============================
-     SAFE FINISH (ONLY ONCE)
-     =============================== */
+  /* =====================================================
+     SAFE FINISH — SINGLE ENTRY POINT
+     ===================================================== */
   forceFinish() {
     if (this.finished) return;
     this.finished = true;
@@ -131,9 +132,6 @@ AFRAME.registerComponent("path-node", {
     } catch {}
 
     window.__CURRENT_AUDIO_NODE__ = null;
-
-    this.system?.lockRootPath?.(this.data.id);
-    this.system?.lockChoice?.(this.data.id);
 
     this.system?.completeNode(
       this.data.id,
