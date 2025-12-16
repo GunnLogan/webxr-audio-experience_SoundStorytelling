@@ -78,11 +78,13 @@ AFRAME.registerSystem("path-manager", {
     this.clearAll();
     this.rootLocked = false;
 
+    // 🍎 iOS → single centered choice
     if (window.IS_IOS) {
       this.spawnNode("front_1", this.center());
       return;
     }
 
+    // 🖥 Android / Desktop → four directions
     this.spawnNode("front_1", this.forward(1));
     this.spawnNode("back_1", this.forward(-1));
     this.spawnNode("left_1", this.right(-1));
@@ -131,31 +133,29 @@ AFRAME.registerSystem("path-manager", {
     }
 
     nextIds.forEach(nextId => {
-      if (window.IS_IOS) {
-        this.spawnNode(nextId, this.center(), id);
-      } else {
-        const def = PATH_GRAPH[nextId];
-        const pos = def.offset.center
-          ? this.center()
-          : this.computePosition(
-              this.sceneEl.camera.el.object3D.position,
-              def.offset
-            );
+      const def = PATH_GRAPH[nextId];
+      if (!def) return;
 
-        this.spawnNode(nextId, pos, id);
-      }
+      const pos = window.IS_IOS || def.offset.center
+        ? this.center()
+        : this.computePosition(
+            this.sceneEl.camera.el.object3D.position,
+            def.offset
+          );
+
+      this.spawnNode(nextId, pos, id);
     });
   },
 
   computePosition(origin, offset) {
     const cam = this.sceneEl.camera.el.object3D;
-    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
-    const p = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    const pos = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
 
-    if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
-    if (offset.right) p.add(r.clone().multiplyScalar(offset.right));
-    return p;
+    if (offset.forward) pos.add(forward.multiplyScalar(offset.forward));
+    if (offset.right) pos.add(right.multiplyScalar(offset.right));
+    return pos;
   },
 
   center() {
