@@ -18,7 +18,9 @@ window.addEventListener("DOMContentLoaded", () => {
   let debugMode = false;
   let longPressTimer = null;
 
+  // 🌍 GLOBAL FLAGS (shared with proximity.js)
   window.__DEBUG_MODE__ = false;
+  window.__CURRENT_AUDIO__ = null;
 
   /* ===============================
      WASD (DEBUG ONLY)
@@ -56,13 +58,32 @@ window.addEventListener("DOMContentLoaded", () => {
 
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
-
-      // ensure A-Frame canvas is transparent
       scene.renderer.domElement.style.background = "transparent";
-
     } catch (e) {
       console.warn("iOS camera access failed", e);
     }
+  }
+
+  /* ===============================
+     DEBUG HUD (SKIP HINT)
+     =============================== */
+  function showDebugHint() {
+    const hint = document.createElement("div");
+    hint.textContent = "DEBUG: Press X to skip audio";
+    Object.assign(hint.style, {
+      position: "fixed",
+      bottom: "16px",
+      right: "16px",
+      padding: "6px 10px",
+      fontSize: "0.7rem",
+      letterSpacing: "0.08em",
+      background: "rgba(0,0,0,0.6)",
+      color: "#fff",
+      borderRadius: "6px",
+      zIndex: "10001",
+      pointerEvents: "none"
+    });
+    document.body.appendChild(hint);
   }
 
   /* ===============================
@@ -73,7 +94,27 @@ window.addEventListener("DOMContentLoaded", () => {
     camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
     setWASDEnabled(true);
+    showDebugHint();
   }
+
+  /* ===============================
+     SKIP AUDIO (DEBUG ONLY)
+     =============================== */
+  window.addEventListener("keydown", (e) => {
+  if (!window.__DEBUG_MODE__) return;
+
+  // X key skips current audio
+  if (e.code === "KeyX") {
+    const playingSounds = document.querySelectorAll("[sound]");
+    playingSounds.forEach(el => {
+      const sound = el.components?.sound;
+      if (sound && sound.isPlaying) {
+        sound.stopSound();
+      }
+    });
+  }
+});
+
 
   /* ===============================
      START EXPERIENCE
@@ -103,8 +144,11 @@ window.addEventListener("DOMContentLoaded", () => {
       introPlayed = true;
       setWASDEnabled(false);
 
+      window.__CURRENT_AUDIO__ = intro;
       intro.components.sound.playSound();
+
       intro.addEventListener("sound-ended", () => {
+        window.__CURRENT_AUDIO__ = null;
         setWASDEnabled(true);
         scene.systems["path-manager"]?.spawnInitialDirections();
       }, { once: true });
