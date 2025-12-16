@@ -56,7 +56,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     iOS CAMERA PASSTHROUGH (ONLY iOS)
+     iOS CAMERA PASSTHROUGH
      ===================================================== */
   async function enableIOSCameraPassthrough() {
     if (!iosVideo) return;
@@ -86,7 +86,6 @@ window.addEventListener("DOMContentLoaded", () => {
     setWASDEnabled(true);
 
     scene.systems["path-manager"]?.spawnInitialDirections();
-    scene.emit("audio-finished");
   }
 
   /* =====================================================
@@ -103,16 +102,12 @@ window.addEventListener("DOMContentLoaded", () => {
     } else {
       debugSky?.setAttribute("visible", "false");
 
-      // 🤖 ANDROID — REAL WEBXR AR
+      // 🤖 Android — REAL AR
       if (!window.IS_IOS && scene.enterAR) {
-        try {
-          await scene.enterAR();
-        } catch (e) {
-          console.warn("Android AR failed to start", e);
-        }
+        try { await scene.enterAR(); } catch {}
       }
 
-      // 🍎 iOS — FAKE PASSTHROUGH
+      // 🍎 iOS — fake passthrough
       if (window.IS_IOS) {
         await enableIOSCameraPassthrough();
       }
@@ -154,13 +149,13 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     DESKTOP — X STOPS AUDIO ONLY
+     DESKTOP — X = FINISH AUDIO NATURALLY
      ===================================================== */
   document.addEventListener("keydown", (e) => {
     if (!window.__DEBUG_MODE__ || e.code !== "KeyX") return;
 
     if (window.__CURRENT_AUDIO_NODE__) {
-      window.__CURRENT_AUDIO_NODE__.forceFinish(true);
+      window.__CURRENT_AUDIO_NODE__.forceFinish(); // ✅ advance
       hideSkipHint();
       setWASDEnabled(true);
       return;
@@ -172,11 +167,11 @@ window.addEventListener("DOMContentLoaded", () => {
   }, true);
 
   /* =====================================================
-     MOBILE SKIP — SAME RULE
+     MOBILE SKIP — SAME BEHAVIOR
      ===================================================== */
   mobileSkipBtn?.addEventListener("click", () => {
     if (window.__CURRENT_AUDIO_NODE__) {
-      window.__CURRENT_AUDIO_NODE__.forceFinish(true);
+      window.__CURRENT_AUDIO_NODE__.forceFinish(); // ✅ advance
     } else if (window.__CURRENT_AUDIO_ENTITY__) {
       finishIntro();
     }
