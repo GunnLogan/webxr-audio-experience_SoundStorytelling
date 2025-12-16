@@ -1,5 +1,5 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5;
+const STEP = 0.5; // 50 cm
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -8,23 +8,19 @@ const STEP = 0.5;
 const PATH_GRAPH = {
   front_1: { color: "#ffffff", next: ["front_2"] },
   front_2: { color: "#ffffff", next: ["front_3a", "front_3b"] },
-  front_3a: { color: "#ffffff", next: ["front_4a", "front_4b"] },
-  front_3b: { color: "#ffffff", next: ["front_4c", "front_4d"] },
+  front_3a: { color: "#ffffff", next: ["front_4a"] },
+  front_3b: { color: "#ffffff", next: ["front_4b"] },
   front_4a: { color: "#ffffff", next: ["front_5a"] },
-  front_4b: { color: "#ffffff", next: ["front_5a"] },
-  front_4c: { color: "#ffffff", next: ["front_5b"] },
-  front_4d: { color: "#ffffff", next: ["front_5b"] },
+  front_4b: { color: "#ffffff", next: ["front_5b"] },
   front_5a: { color: "#ffffff", next: ["end_b", "end_a"] },
   front_5b: { color: "#ffffff", next: ["end_b", "end_a"] },
 
   back_1: { color: "#000000", next: ["back_2"] },
   back_2: { color: "#000000", next: ["back_3a", "back_3b"] },
-  back_3a: { color: "#000000", next: ["back_4a", "back_4b"] },
-  back_3b: { color: "#000000", next: ["back_4c", "back_4d"] },
+  back_3a: { color: "#000000", next: ["back_4a"] },
+  back_3b: { color: "#000000", next: ["back_4b"] },
   back_4a: { color: "#000000", next: ["back_5a"] },
-  back_4b: { color: "#000000", next: ["back_5a"] },
-  back_4c: { color: "#000000", next: ["back_5b"] },
-  back_4d: { color: "#000000", next: ["back_5b"] },
+  back_4b: { color: "#000000", next: ["back_5b"] },
   back_5a: { color: "#000000", next: ["end_b", "end_a"] },
   back_5b: { color: "#000000", next: ["end_b", "end_a"] },
 
@@ -34,7 +30,6 @@ const PATH_GRAPH = {
   left_3b: { color: "#ff0000", next: ["left_4b"] },
   left_4a: { color: "#ff0000", next: ["end_b", "end_a"] },
   left_4b: { color: "#ff0000", next: ["end_b", "end_a"] },
-
 
   right_1: { color: "#0066ff", next: ["right_2"] },
   right_2: { color: "#0066ff", next: ["right_3a", "right_3b"] },
@@ -56,3 +51,135 @@ const PATH_GRAPH = {
   explore_more: { color: "#ffffff", next: [] },
   bomb_end: { color: "#000000", next: [] }
 };
+
+/* =====================================================
+   PATH MANAGER SYSTEM
+   ===================================================== */
+
+AFRAME.registerSystem("path-manager", {
+  init() {
+    this.root = document.querySelector("#experienceRoot");
+    if (!this.root) {
+      console.error("[path-manager] #experienceRoot not found");
+      return;
+    }
+
+    this.active = new Map();
+    this.played = new Set();
+  },
+
+  spawnInitialDirections() {
+    this.clearAll();
+
+    if (window.IS_IOS) {
+      this.spawnNode("front_1", this.radial(0));
+      this.spawnNode("right_1", this.radial(90));
+      this.spawnNode("back_1", this.radial(180));
+      this.spawnNode("left_1", this.radial(270));
+      return;
+    }
+
+    this.spawnNode("front_1", this.forward(STEP));
+    this.spawnNode("back_1", this.forward(-STEP));
+    this.spawnNode("left_1", this.right(-STEP));
+    this.spawnNode("right_1", this.right(STEP));
+  },
+
+  clearAll() {
+    this.root.innerHTML = "";
+    this.active.clear();
+  },
+
+  spawnNode(id, position, parentId = null) {
+    if (this.active.has(id) || this.played.has(id)) return;
+
+    const def = PATH_GRAPH[id];
+    if (!def) return;
+
+    const el = document.createElement("a-sphere");
+    el.setAttribute("radius", 0.25);
+    el.setAttribute("position", position);
+    el.setAttribute("material", {
+      color: def.color,
+      opacity: 0.6,
+      transparent: true
+    });
+
+    el.setAttribute("soft-pulse", "");
+    if (parentId) el.setAttribute("guidance-glow", "");
+    el.setAttribute("path-node", { id, next: def.next });
+
+    this.root.appendChild(el);
+    this.active.set(id, el);
+  },
+
+  completeNode(id, nextIds) {
+    if (this.played.has(id)) return;
+
+    this.played.add(id);
+
+    // 🔥 REMOVE ALL OTHER ACTIVE NODES
+    this.active.forEach((el, key) => {
+      if (key !== id) el.remove();
+    });
+    this.active.clear();
+
+    if (id === "explore_more") {
+      this.played.clear();
+      this.spawnInitialDirections();
+      return;
+    }
+
+    if (window.IS_IOS) {
+      if (nextIds.length === 1) {
+        this.spawnNode(nextIds[0], this.radial(0), id);
+      } else {
+        this.spawnNode(nextIds[0], this.radial(-45), id);
+        this.spawnNode(nextIds[1], this.radial(45), id);
+      }
+      return;
+    }
+
+    if (nextIds.length === 1) {
+      this.spawnNode(nextIds[0], this.forwardFromCamera(STEP), id);
+    } else {
+      this.spawnNode(nextIds[0], this.diagonalFromCamera(-STEP, STEP), id);
+      this.spawnNode(nextIds[1], this.diagonalFromCamera(STEP, STEP), id);
+    }
+  },
+
+  radial(deg) {
+    const rad = THREE.MathUtils.degToRad(deg);
+    return new THREE.Vector3(
+      Math.sin(rad) * STEP,
+      CHEST_Y,
+      -Math.cos(rad) * STEP
+    );
+  },
+
+  forwardFromCamera(d) {
+    const cam = this.sceneEl.camera.el.object3D;
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    return cam.position.clone().add(f.multiplyScalar(d)).setY(CHEST_Y);
+  },
+
+  diagonalFromCamera(x, z) {
+    const cam = this.sceneEl.camera.el.object3D;
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+
+    return cam.position
+      .clone()
+      .add(f.multiplyScalar(z))
+      .add(r.multiplyScalar(x))
+      .setY(CHEST_Y);
+  },
+
+  forward(d) {
+    return new THREE.Vector3(0, CHEST_Y, -d);
+  },
+
+  right(d) {
+    return new THREE.Vector3(d, CHEST_Y, 0);
+  }
+});
