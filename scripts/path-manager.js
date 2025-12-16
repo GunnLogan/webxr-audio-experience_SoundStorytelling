@@ -71,13 +71,9 @@ AFRAME.registerSystem("path-manager", {
     this.rootLocked = false;
   },
 
-  /* ---------- INITIAL ---------- */
-
   spawnInitialDirections() {
     this.clearAll();
-    this.played.clear();            // ✅ IMPORTANT RESET
     this.rootLocked = false;
-
     this.spawnNode("front_1", this.forward(1));
     this.spawnNode("back_1", this.forward(-1));
     this.spawnNode("left_1", this.right(-1));
@@ -89,8 +85,6 @@ AFRAME.registerSystem("path-manager", {
     this.active.clear();
     this.choiceGroups.clear();
   },
-
-  /* ---------- SPAWN ---------- */
 
   spawnNode(id, pos, parentId = null) {
     if (this.active.has(id) || this.played.has(id)) return;
@@ -124,8 +118,6 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  /* ---------- LOCKING ---------- */
-
   lockRootPath(chosenId) {
     if (!this.rootNodes.includes(chosenId) || this.rootLocked) return;
     this.rootLocked = true;
@@ -154,16 +146,14 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  /* ---------- COMPLETE ---------- */
-
   completeNode(id, nextIds, origin) {
     if (this.played.has(id)) return;
-
     this.played.add(id);
     this.active.delete(id);
     this.lockRootPath(id);
 
     if (id === "explore_more") {
+      this.played.clear();
       this.spawnInitialDirections();
       return;
     }
@@ -180,19 +170,22 @@ AFRAME.registerSystem("path-manager", {
     });
   },
 
-  /* ---------- POSITION ---------- */
-
   computePosition(origin, offset) {
     const cam = this.sceneEl.camera.el.object3D;
     const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
     const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
-
     const p = new THREE.Vector3(origin.x, CHEST_Y, origin.z);
+
     if (offset.forward) p.add(f.clone().multiplyScalar(offset.forward));
     if (offset.right) p.add(r.clone().multiplyScalar(offset.right));
     return p;
   },
 
-  forward(m) { return { x: 0, y: CHEST_Y, z: -m }; },
-  right(m)   { return { x: m, y: CHEST_Y, z: 0 }; }
+  forward(m) {
+    return { x: 0, y: CHEST_Y, z: -m };
+  },
+
+  right(m) {
+    return { x: m, y: CHEST_Y, z: 0 };
+  }
 });
