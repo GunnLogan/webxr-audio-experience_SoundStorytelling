@@ -1,3 +1,7 @@
+// 🌍 Global reference to currently playing node (DEBUG ONLY)
+window.__CURRENT_AUDIO_NODE__ = null;
+
+
 /* =====================================================
    WASD CONTROL HELPER (DEBUG ONLY)
    ===================================================== */
