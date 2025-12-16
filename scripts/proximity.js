@@ -8,6 +8,7 @@ AFRAME.registerComponent("path-node", {
   init() {
     this.triggered = false;
     this.finished = false;
+    this.isExploreMore = this.data.id === "explore_more";
 
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
@@ -15,18 +16,19 @@ AFRAME.registerComponent("path-node", {
 
     this.el.classList.add("clickable");
 
-    // iOS tap ONLY
+    // iOS tap only
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
     }
 
-    // 🔥 RE-ARM AFTER AUDIO SKIP
+    // 🔥 re-arm ONLY non-explore nodes
     this._rearm = () => {
+      if (this.isExploreMore) return;
       if (!this.finished) this.triggered = false;
     };
     this.el.sceneEl.addEventListener("audio-finished", this._rearm);
 
-    if (this.data.id === "explore_more") return;
+    if (this.isExploreMore) return;
 
     const src = `assets/audio/${this.data.id}.wav`;
     this.sound = document.createElement("a-entity");
@@ -55,11 +57,28 @@ AFRAME.registerComponent("path-node", {
     }
   },
 
+  disableSiblingNodes() {
+    if (this.isExploreMore) return;
+
+    document.querySelectorAll("[path-node]").forEach(el => {
+      if (el === this.el) return;
+      const comp = el.components["path-node"];
+      if (!comp || comp.finished) return;
+
+      comp.triggered = true;
+      el.setAttribute("visible", false);
+    });
+  },
+
   handleTrigger() {
     if (this.triggered) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
     this.triggered = true;
+
+    // 🔥 COMMIT CHOICE (unless explore_more)
+    this.disableSiblingNodes();
+
     window.__CURRENT_AUDIO_NODE__ = this;
     this.el.setAttribute("visible", false);
 
