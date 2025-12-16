@@ -60,7 +60,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     iOS CAMERA PASSTHROUGH
+     iOS CAMERA PASSTHROUGH (OPTIONAL)
      ===================================================== */
   async function enableIOSCameraPassthrough() {
     if (!iosVideo) return;
@@ -80,7 +80,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     INTRO FINISH (single source of truth)
+     INTRO FINISH (SINGLE SOURCE OF TRUTH)
      ===================================================== */
   function finishIntro() {
     if (!window.__CURRENT_AUDIO_ENTITY__) return;
@@ -163,7 +163,6 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!window.__DEBUG_MODE__) return;
     if (e.code !== "KeyX") return;
 
-    // Path-node audio
     if (window.__CURRENT_AUDIO_NODE__) {
       window.__CURRENT_AUDIO_NODE__.forceFinish();
       hideSkipHint();
@@ -171,14 +170,13 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Intro audio
     if (window.__CURRENT_AUDIO_ENTITY__) {
       finishIntro();
     }
   }, true);
 
   /* =====================================================
-     MOBILE SKIP BUTTON
+     MOBILE SKIP BUTTON (SAME BEHAVIOR AS X)
      ===================================================== */
   if (mobileSkipBtn) {
     mobileSkipBtn.textContent = "SKIP AUDIO";
