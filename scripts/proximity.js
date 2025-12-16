@@ -8,27 +8,17 @@ AFRAME.registerComponent("path-node", {
   init() {
     this.triggered = false;
     this.finished = false;
-    this.isExploreMore = this.data.id === "explore_more";
-
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
     this._onEnded = null;
 
     this.el.classList.add("clickable");
 
-    // iOS tap ONLY
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
     }
 
-    // 🔥 RE-ARM proximity ONLY for real nodes
-    this._rearm = () => {
-      if (this.isExploreMore) return;
-      if (!this.finished) this.triggered = false;
-    };
-    this.el.sceneEl.addEventListener("audio-finished", this._rearm);
-
-    if (this.isExploreMore) return;
+    if (this.data.id === "explore_more") return;
 
     const src = `assets/audio/${this.data.id}.wav`;
     this.sound = document.createElement("a-entity");
@@ -66,21 +56,16 @@ AFRAME.registerComponent("path-node", {
     this.el.setAttribute("visible", false);
 
     if (!this.sound?.components?.sound) {
-      this.forceFinish(false);
+      this.forceFinish();
       return;
     }
 
     this.sound.components.sound.playSound();
-    this._onEnded = () => this.forceFinish(false); // ✅ natural end
+    this._onEnded = () => this.forceFinish();
     this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
   },
 
-  /* =====================================================
-     FINISH
-     forced = true  → stop audio ONLY
-     forced = false → advance story
-     ===================================================== */
-  forceFinish(forced = false) {
+  forceFinish() {
     if (this.finished) return;
     this.finished = true;
 
@@ -91,15 +76,9 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // ✅ ONLY advance if NOT forced
-    if (!forced) {
-      this.system?.completeNode(this.data.id, this.data.next);
-    }
+    // ✅ ALWAYS ADVANCE STORY
+    this.system?.completeNode(this.data.id, this.data.next);
 
     this.el.remove();
-  },
-
-  remove() {
-    this.el.sceneEl.removeEventListener("audio-finished", this._rearm);
   }
 });
