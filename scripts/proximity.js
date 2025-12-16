@@ -77,7 +77,8 @@ AFRAME.registerComponent("guidance-glow", {
 });
 
 /* =====================================================
-   PATH NODE (explore_more is ONLY silent node)
+   PATH NODE
+   (explore_more is the ONLY silent node)
    ===================================================== */
 
 AFRAME.registerComponent("path-node", {
@@ -91,6 +92,7 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
 
+    // 🔇 explore_more is intentionally silent
     if (this.data.id === "explore_more") return;
 
     const audioSrc = `assets/audio/${this.data.id}.wav`;
@@ -128,11 +130,20 @@ AFRAME.registerComponent("path-node", {
         // 🔒 Freeze WASD only in desktop debug
         setWASDEnabled(false);
 
+        // 🔑 Register globally so S-key can skip it
+        window.__CURRENT_AUDIO__ = this.sound;
+
         this.sound.components.sound.playSound();
-        this.sound.addEventListener("sound-ended", () => {
-          setWASDEnabled(true);
-          this.finish();
-        }, { once: true });
+
+        this.sound.addEventListener(
+          "sound-ended",
+          () => {
+            window.__CURRENT_AUDIO__ = null;
+            setWASDEnabled(true);
+            this.finish();
+          },
+          { once: true }
+        );
       } else {
         this.finish();
       }
