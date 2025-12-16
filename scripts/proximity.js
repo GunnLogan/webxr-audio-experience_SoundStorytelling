@@ -1,11 +1,73 @@
 /* =====================================================
-   PATH NODE
-   - Desktop / Android: distance trigger
-   - iPhone (iOS): tap trigger
+   PLATFORM DETECTION (SINGLE SOURCE OF TRUTH)
    ===================================================== */
-
 const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+/* =====================================================
+   SOFT PULSE + GENTLE BOUNCE
+   ===================================================== */
+AFRAME.registerComponent("soft-pulse", {
+  schema: {
+    scaleMax: { type: "number", default: 1.03 },
+    bounce: { type: "number", default: 0.025 },
+    duration: { type: "number", default: 2600 }
+  },
+
+  init() {
+    const el = this.el;
+    const y = el.object3D.position.y;
+
+    el.setAttribute("animation__scale", {
+      property: "scale",
+      dir: "alternate",
+      dur: this.data.duration,
+      easing: "easeInOutSine",
+      loop: true,
+      to: `${this.data.scaleMax} ${this.data.scaleMax} ${this.data.scaleMax}`
+    });
+
+    el.setAttribute("animation__bounce", {
+      property: "position",
+      dir: "alternate",
+      dur: this.data.duration,
+      easing: "easeInOutSine",
+      loop: true,
+      to: `${el.object3D.position.x} ${y + this.data.bounce} ${el.object3D.position.z}`
+    });
+  }
+});
+
+/* =====================================================
+   GUIDANCE GLOW
+   ===================================================== */
+AFRAME.registerComponent("guidance-glow", {
+  init() {
+    this.el.setAttribute("material", "emissive", "#ffffff");
+    this.el.setAttribute("material", "emissiveIntensity", 0.25);
+
+    this.el.setAttribute("animation__glow", {
+      property: "material.emissiveIntensity",
+      from: 0.25,
+      to: 0.7,
+      dir: "alternate",
+      dur: 1800,
+      easing: "easeInOutSine",
+      loop: true
+    });
+  },
+
+  remove() {
+    this.el.removeAttribute("animation__glow");
+    this.el.setAttribute("material", "emissiveIntensity", 0);
+  }
+});
+
+/* =====================================================
+   PATH NODE
+   - iOS: TAP to trigger
+   - Desktop/Android: DISTANCE to trigger
+   - explore_more is silent
+   ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
     id: { type: "string" },
@@ -15,11 +77,12 @@ AFRAME.registerComponent("path-node", {
   init() {
     this.triggered = false;
     this.finished = false;
+    this.isChoice = false; // ✅ CRITICAL FLAG
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
     this._onEnded = null;
 
-    // 🔹 iOS ONLY — tap to trigger
+    // iOS → tap interaction
     if (IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
       this.el.addEventListener("touchstart", () => this.handleTrigger());
@@ -45,9 +108,8 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    // ❌ iOS does NOT use distance triggering
+    // iOS does NOT use distance triggering
     if (IS_IOS) return;
-
     if (this.triggered) return;
 
     const cam = this.el.sceneEl.camera.el.object3D.position;
@@ -63,7 +125,9 @@ AFRAME.registerComponent("path-node", {
      ===================================================== */
   handleTrigger() {
     if (this.triggered) return;
+
     this.triggered = true;
+    this.isChoice = true; // ✅ mark as legitimate choice
 
     this.el.removeAttribute("guidance-glow");
     this.el.setAttribute("visible", false);
@@ -81,7 +145,7 @@ AFRAME.registerComponent("path-node", {
   },
 
   /* =====================================================
-     SAFE FINISH — AUTHORITATIVE
+     SAFE FINISH — ONLY RUNS ONCE
      ===================================================== */
   forceFinish() {
     if (this.finished) return;
@@ -94,14 +158,17 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    this.system?.lockRootPath?.(this.data.id);
-    this.system?.lockChoice?.(this.data.id);
+    // ✅ ONLY lock paths if this was a real choice
+    if (this.isChoice) {
+      this.system?.lockRootPath?.(this.data.id);
+      this.system?.lockChoice?.(this.data.id);
 
-    this.system?.completeNode(
-      this.data.id,
-      this.data.next,
-      this.el.object3D.position
-    );
+      this.system?.completeNode(
+        this.data.id,
+        this.data.next,
+        this.el.object3D.position
+      );
+    }
 
     this.el.remove();
   }
