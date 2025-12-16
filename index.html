@@ -23,29 +23,33 @@
 
 <body>
 
-  <!-- START OVERLAY -->
-  <div id="startOverlay">
-  <div id="startButtons">
+  <!-- INFO ICON -->
+  <button id="infoButton" aria-label="Show information">ⓘ</button>
 
-    <!-- A3 IMAGE -->
+  <!-- POSTER OVERLAY -->
+  <div id="posterOverlay">
     <img
       src="assets/images/poster.png"
-      alt="poster"
-      class="start-poster"
+      alt="Information poster"
+      class="poster-overlay-image"
     />
-
-    <!-- PLAQUE -->
-    <div id="startTitle" class="placard">
-      <div class="title-main">ATOMBOMBEN ÖVER ÖSTERMALM</div>
-      <div class="title-sub">– EN LJUDVANDRING –</div>
-    </div>
-
-    <!-- START BUTTON -->
-    <button id="startButton">Starta</button>
-
   </div>
-</div>
 
+  <!-- START OVERLAY -->
+  <div id="startOverlay">
+    <div id="startButtons">
+
+      <!-- PLAQUE -->
+      <div id="startTitle" class="placard">
+        <div class="title-main">ATOMBOMBEN ÖVER ÖSTERMALM</div>
+        <div class="title-sub">– EN LJUDVANDRING –</div>
+      </div>
+
+      <!-- START BUTTON -->
+      <button id="startButton">Starta</button>
+
+    </div>
+  </div>
 
   <!-- iOS CAMERA PASSTHROUGH -->
   <video
@@ -73,10 +77,8 @@
     ar-mode-ui="enabled:false"
   >
 
-    <!-- DEBUG SKY -->
     <a-sky id="debugSky" color="#777777" visible="false"></a-sky>
 
-    <!-- CAMERA -->
     <a-entity
       id="camera"
       camera
@@ -87,13 +89,11 @@
       position="0 1.6 0"
     ></a-entity>
 
-    <!-- INTRO AUDIO -->
     <a-entity
       id="intro"
       sound="src:url(assets/audio/intro.wav); autoplay:false; positional:false"
     ></a-entity>
 
-    <!-- EXPERIENCE ROOT -->
     <a-entity id="experienceRoot"></a-entity>
 
   </a-scene>
