@@ -23,28 +23,9 @@
 
 <body>
 
-  <!-- INFO BUTTON (NEW, SMALL, NON-INTRUSIVE) -->
-  <button id="infoButton" aria-label="Information">ⓘ</button>
-
-  <!-- POSTER OVERLAY (HIDDEN BY DEFAULT) -->
-  <div id="posterOverlay">
-    <img
-      src="assets/images/poster.png"
-      alt="Information poster"
-      class="poster-overlay-image"
-    />
-  </div>
-
-  <!-- START OVERLAY (UNCHANGED) -->
+  <!-- START OVERLAY -->
   <div id="startOverlay">
     <div id="startButtons">
-
-      <!-- A3 IMAGE (ORIGINAL POSITION) -->
-      <img
-        src="assets/images/poster.png"
-        alt="poster"
-        class="start-poster"
-      />
 
       <!-- PLAQUE -->
       <div id="startTitle" class="placard">
@@ -83,8 +64,11 @@
     vr-mode-ui="enabled:false"
     ar-mode-ui="enabled:false"
   >
+
+    <!-- DEBUG SKY -->
     <a-sky id="debugSky" color="#777777" visible="false"></a-sky>
 
+    <!-- CAMERA -->
     <a-entity
       id="camera"
       camera
@@ -95,12 +79,15 @@
       position="0 1.6 0"
     ></a-entity>
 
+    <!-- INTRO AUDIO -->
     <a-entity
       id="intro"
       sound="src:url(assets/audio/intro.wav); autoplay:false; positional:false"
     ></a-entity>
 
+    <!-- EXPERIENCE ROOT -->
     <a-entity id="experienceRoot"></a-entity>
+
   </a-scene>
 
 </body>
