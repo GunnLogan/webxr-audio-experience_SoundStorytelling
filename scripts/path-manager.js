@@ -1,6 +1,5 @@
 const CHEST_Y = 1.3;
 const STEP = 0.5;
-const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
