@@ -69,7 +69,7 @@ window.addEventListener("DOMContentLoaded", () => {
      =============================== */
   function showDebugHint() {
     const hint = document.createElement("div");
-    hint.textContent = "DEBUG: Press S to skip audio";
+    hint.textContent = "DEBUG: Press X to skip audio";
     Object.assign(hint.style, {
       position: "fixed",
       bottom: "16px",
@@ -102,7 +102,7 @@ window.addEventListener("DOMContentLoaded", () => {
      =============================== */
   window.addEventListener("keydown", (e) => {
     if (!window.__DEBUG_MODE__) return;
-    if (e.code !== "KeyS") return;
+    if (e.code !== "KeyX") return;
 
     const audio = window.__CURRENT_AUDIO__;
     if (audio && audio.components?.sound?.isPlaying) {
