@@ -29,6 +29,7 @@ window.addEventListener("DOMContentLoaded", () => {
      ===================================================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
+
     camera.setAttribute("wasd-controls", {
       enabled,
       fly: true,
@@ -61,6 +62,7 @@ window.addEventListener("DOMContentLoaded", () => {
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
 
+      // Transparent A-Frame canvas
       scene.renderer.setClearColor(0x000000, 0);
     } catch (e) {
       console.warn("iOS camera failed", e);
@@ -100,7 +102,7 @@ window.addEventListener("DOMContentLoaded", () => {
       introPlayed = true;
       setWASDEnabled(false);
 
-      // 🔑 MUST happen inside user gesture for iOS
+      // 🔑 Must be inside user gesture for iOS
       window.__CURRENT_AUDIO_ENTITY__ = intro;
       intro.components.sound.playSound();
 
@@ -137,25 +139,38 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     DESKTOP DEBUG — PRESS X TO SKIP AUDIO
+     DESKTOP DEBUG — PRESS X TO SKIP AUDIO (FIXED)
      ===================================================== */
-  document.addEventListener("keydown", (e) => {
-    if (!window.__DEBUG_MODE__) return;
-    if (e.code !== "KeyX") return;
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (!window.__DEBUG_MODE__) return;
+      if (e.code !== "KeyX") return;
 
-    // Path-node audio
-    if (window.__CURRENT_AUDIO_NODE__) {
-      window.__CURRENT_AUDIO_NODE__.forceFinish();
-      return;
-    }
+      console.log("⏭️ Skip audio (X)");
 
-    // Intro audio
-    if (window.__CURRENT_AUDIO_ENTITY__?.components?.sound) {
-      window.__CURRENT_AUDIO_ENTITY__.components.sound.stopSound();
-      window.__CURRENT_AUDIO_ENTITY__ = null;
-      scene.systems["path-manager"]?.spawnInitialDirections();
-    }
-  }, true);
+      // Path-node audio
+      if (window.__CURRENT_AUDIO_NODE__) {
+        window.__CURRENT_AUDIO_NODE__.forceFinish();
+        window.__CURRENT_AUDIO_NODE__ = null;
+      }
+
+      // Intro audio
+      if (window.__CURRENT_AUDIO_ENTITY__?.components?.sound) {
+        window.__CURRENT_AUDIO_ENTITY__.components.sound.stopSound();
+        window.__CURRENT_AUDIO_ENTITY__ = null;
+        scene.systems["path-manager"]?.spawnInitialDirections();
+      }
+
+      // ✅ HARD RE-ENABLE WASD (critical fix)
+      camera.setAttribute("wasd-controls", {
+        enabled: true,
+        fly: true,
+        acceleration: 35
+      });
+    },
+    true // capture phase — required for A-Frame canvas
+  );
 
   /* =====================================================
      MOBILE SKIP BUTTON
