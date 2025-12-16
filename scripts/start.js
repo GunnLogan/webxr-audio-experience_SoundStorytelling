@@ -5,6 +5,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const scene = document.querySelector("a-scene");
   const camera = document.querySelector("#camera");
   const debugSky = document.querySelector("#debugSky");
+  const iosVideo = document.querySelector("#iosCamera");
+
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (!startBtn || !overlay || !intro || !scene || !camera) {
@@ -23,7 +25,7 @@ window.addEventListener("DOMContentLoaded", () => {
      WASD CONTROL HELPER (DEBUG ONLY)
      =============================== */
   function setWASDEnabled(enabled) {
-    if (!window.__DEBUG_MODE__) return; // 🔒 desktop debug only
+    if (!window.__DEBUG_MODE__) return;
 
     camera.setAttribute("wasd-controls", {
       enabled,
@@ -47,11 +49,31 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
+     iOS CAMERA PASSTHROUGH
+     =============================== */
+  async function enableIOSCameraPassthrough() {
+    if (!iosVideo) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false
+      });
+
+      iosVideo.srcObject = stream;
+      iosVideo.style.display = "block";
+    } catch (e) {
+      console.warn("iOS camera access failed", e);
+    }
+  }
+
+  /* ===============================
      DEBUG TOAST
      =============================== */
   function showDebugToast() {
     const toast = document.createElement("div");
     toast.textContent = "DEBUG MODE";
+
     Object.assign(toast.style, {
       position: "fixed",
       bottom: "24px",
@@ -106,8 +128,18 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
-    if (!debugMode && scene.enterAR) {
-      try { await scene.enterAR(); } catch {}
+    // ANDROID → real WebXR AR
+    if (!debugMode && scene.enterAR && !isIOS) {
+      try {
+        await scene.enterAR();
+      } catch (e) {
+        console.warn("AR entry failed", e);
+      }
+    }
+
+    // iOS → camera passthrough fallback
+    if (!debugMode && isIOS) {
+      await enableIOSCameraPassthrough();
     }
 
     if (debugMode) {
@@ -119,20 +151,27 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!introPlayed) {
       introPlayed = true;
 
-      // 🔒 Freeze WASD only if debug
+      // 🔒 Freeze WASD during intro (debug only)
       setWASDEnabled(false);
 
       intro.components.sound.playSound();
-      intro.addEventListener("sound-ended", () => {
-        setWASDEnabled(true);
-        scene.systems["path-manager"]?.spawnInitialDirections();
-      }, { once: true });
+
+      intro.addEventListener(
+        "sound-ended",
+        () => {
+          setWASDEnabled(true);
+          scene.systems["path-manager"]?.spawnInitialDirections();
+        },
+        { once: true }
+      );
     }
   }
 
   /* ===============================
      INPUT
      =============================== */
+
+  // Desktop: click (Shift = debug)
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
@@ -141,6 +180,7 @@ window.addEventListener("DOMContentLoaded", () => {
     startExperience();
   });
 
+  // Mobile: long-press for debug
   startBtn.addEventListener("touchstart", () => {
     longPressTimer = setTimeout(() => {
       debugMode = true;
