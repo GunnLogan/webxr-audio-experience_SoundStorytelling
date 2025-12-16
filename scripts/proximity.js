@@ -1,12 +1,10 @@
 /* =====================================================
-   PLATFORM DETECTION
+   PLATFORM DETECTION (OPTION A)
    ===================================================== */
 const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* =====================================================
    PATH NODE
-   - iOS: TAP (cursor + raycaster)
-   - Desktop / Android / AR: DISTANCE (world space)
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
@@ -24,10 +22,10 @@ AFRAME.registerComponent("path-node", {
     this.sound = null;
     this._onEnded = null;
 
-    // Make raycastable
+    // Make raycastable (cursor is always present, but only iOS listens)
     this.el.classList.add("clickable");
 
-    // iOS tap
+    // OPTION A: click ONLY on iOS
     if (IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
     }
@@ -52,16 +50,17 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
+    // OPTION A: iOS NEVER uses distance
     if (IS_IOS) return;
     if (this.triggered) return;
 
-    // Block while any audio is playing
+    // Block if audio is already playing
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
     const scene = this.el.sceneEl;
     if (!scene?.camera?.el) return;
 
-    // WORLD SPACE distance (CRITICAL FIX)
+    // WORLD SPACE DISTANCE (critical for AR)
     const camWorld = new THREE.Vector3();
     const nodeWorld = new THREE.Vector3();
     scene.camera.el.object3D.getWorldPosition(camWorld);
@@ -77,13 +76,14 @@ AFRAME.registerComponent("path-node", {
      ===================================================== */
   handleTrigger() {
     if (this.triggered) return;
+
+    // Never trigger if something else is playing
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
     this.triggered = true;
     this.isChoice = true;
 
     this.el.setAttribute("visible", false);
-
     window.__CURRENT_AUDIO_NODE__ = this;
 
     // Silent node → immediate finish
@@ -98,7 +98,7 @@ AFRAME.registerComponent("path-node", {
   },
 
   /* =====================================================
-     FINISH (natural or skip)
+     FINISH (NATURAL OR SKIP)
      ===================================================== */
   forceFinish() {
     if (this.finished) return;
@@ -111,7 +111,6 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // Spawn next nodes ONLY after audio finishes
     if (this.isChoice) {
       this.system?.lockRootPath?.(this.data.id);
       this.system?.lockChoice?.(this.data.id);
