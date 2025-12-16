@@ -66,7 +66,7 @@ AFRAME.registerComponent("guidance-glow", {
    PATH NODE
    - iOS: TAP to trigger
    - Desktop/Android: DISTANCE to trigger
-   - explore_more is silent
+   - Audio completion unlocks next nodes
    ===================================================== */
 AFRAME.registerComponent("path-node", {
   schema: {
@@ -77,12 +77,13 @@ AFRAME.registerComponent("path-node", {
   init() {
     this.triggered = false;
     this.finished = false;
-    this.isChoice = false; // ✅ CRITICAL FLAG
+    this.isChoice = false;
+
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
     this._onEnded = null;
 
-    // iOS → tap interaction
+    // iOS → tap
     if (IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
       this.el.addEventListener("touchstart", () => this.handleTrigger());
@@ -108,7 +109,7 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    // iOS does NOT use distance triggering
+    // iOS does not use distance triggers
     if (IS_IOS) return;
     if (this.triggered) return;
 
@@ -127,25 +128,31 @@ AFRAME.registerComponent("path-node", {
     if (this.triggered) return;
 
     this.triggered = true;
-    this.isChoice = true; // ✅ mark as legitimate choice
+    this.isChoice = true;
 
+    // Visual + guidance cleanup
     this.el.removeAttribute("guidance-glow");
+    this.el.removeAttribute("soft-pulse");
     this.el.setAttribute("visible", false);
 
+    // Register as current audio node
     window.__CURRENT_AUDIO_NODE__ = this;
 
+    // Silent nodes finish immediately
     if (!this.sound?.components?.sound) {
       this.forceFinish();
       return;
     }
 
+    // Play audio
     this.sound.components.sound.playSound();
+
     this._onEnded = () => this.forceFinish();
     this.sound.addEventListener("sound-ended", this._onEnded, { once: true });
   },
 
   /* =====================================================
-     SAFE FINISH — ONLY RUNS ONCE
+     SAFE FINISH — SAME PATH FOR NATURAL END & SKIP
      ===================================================== */
   forceFinish() {
     if (this.finished) return;
@@ -158,7 +165,7 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // ✅ ONLY lock paths if this was a real choice
+    // Unlock next nodes ONLY now (after audio fully finished)
     if (this.isChoice) {
       this.system?.lockRootPath?.(this.data.id);
       this.system?.lockChoice?.(this.data.id);
