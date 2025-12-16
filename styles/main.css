@@ -210,3 +210,33 @@ button,
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* ===============================
+   DEBUG OVERLAY HINT
+   =============================== */
+
+#debugHint {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 14px;
+
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  border-radius: 8px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+
+  z-index: 10002;
+}
+
+#debugHint.visible {
+  opacity: 1;
+}
