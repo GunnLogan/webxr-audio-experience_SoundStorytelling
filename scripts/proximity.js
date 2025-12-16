@@ -47,10 +47,11 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.sound = null;
 
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // 🔒 Detect iOS LOCALLY (no globals!)
+    this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // Tap to trigger on iOS
-    if (isIOS) {
+    // Tap-to-trigger on iOS
+    if (this.isIOS) {
       this.el.addEventListener("click", () => {
         if (this.triggered) return;
         this.triggered = true;
@@ -78,9 +79,7 @@ AFRAME.registerComponent("path-node", {
 
   tick() {
     if (this.triggered) return;
-
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isIOS) return;
+    if (this.isIOS) return; // iOS uses tap, not distance
 
     const cam = this.el.sceneEl.camera.el.object3D.position;
     const pos = this.el.object3D.position;
@@ -97,18 +96,27 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = this;
 
-    try {
-      this.sound?.components?.sound?.playSound();
-    } catch {}
-
-    this.sound?.addEventListener("sound-ended", () => {
-      window.__CURRENT_AUDIO_NODE__ = null;
-      this.system?.completeNode(
-        this.data.id,
-        this.data.next,
-        this.el.object3D.position
+    if (this.sound?.components?.sound) {
+      this.sound.components.sound.playSound();
+      this.sound.addEventListener(
+        "sound-ended",
+        () => this.complete(),
+        { once: true }
       );
-      this.el.remove();
-    }, { once: true });
+    } else {
+      this.complete();
+    }
+  },
+
+  complete() {
+    window.__CURRENT_AUDIO_NODE__ = null;
+
+    this.system?.completeNode(
+      this.data.id,
+      this.data.next,
+      this.el.object3D.position
+    );
+
+    this.el.remove();
   }
 });
