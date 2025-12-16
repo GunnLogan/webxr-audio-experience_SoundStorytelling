@@ -18,15 +18,13 @@ window.addEventListener("DOMContentLoaded", () => {
   let debugMode = false;
   let longPressTimer = null;
 
-  // 🌍 GLOBAL DEBUG FLAG (shared with proximity.js)
   window.__DEBUG_MODE__ = false;
 
   /* ===============================
-     WASD CONTROL HELPER (DEBUG ONLY)
+     WASD (DEBUG ONLY)
      =============================== */
   function setWASDEnabled(enabled) {
     if (!window.__DEBUG_MODE__) return;
-
     camera.setAttribute("wasd-controls", {
       enabled,
       fly: true,
@@ -35,16 +33,12 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ===============================
-     AUDIO UNLOCK (MOBILE)
+     AUDIO UNLOCK
      =============================== */
   async function unlockAudio() {
     const ctx = AFRAME.audioContext;
     if (ctx && ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch (e) {
-        console.warn("Audio unlock failed", e);
-      }
+      try { await ctx.resume(); } catch {}
     }
   }
 
@@ -62,41 +56,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
+
+      // ensure A-Frame canvas is transparent
+      scene.renderer.domElement.style.background = "transparent";
+
     } catch (e) {
       console.warn("iOS camera access failed", e);
     }
-  }
-
-  /* ===============================
-     DEBUG TOAST
-     =============================== */
-  function showDebugToast() {
-    const toast = document.createElement("div");
-    toast.textContent = "DEBUG MODE";
-
-    Object.assign(toast.style, {
-      position: "fixed",
-      bottom: "24px",
-      left: "50%",
-      transform: "translateX(-50%)",
-      padding: "8px 14px",
-      fontSize: "0.75rem",
-      letterSpacing: "0.12em",
-      background: "rgba(0,0,0,0.75)",
-      color: "white",
-      borderRadius: "8px",
-      opacity: "0",
-      transition: "opacity 0.4s ease",
-      zIndex: "10001"
-    });
-
-    document.body.appendChild(toast);
-    requestAnimationFrame(() => (toast.style.opacity = "1"));
-
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      setTimeout(() => toast.remove(), 500);
-    }, 1500);
   }
 
   /* ===============================
@@ -104,20 +70,9 @@ window.addEventListener("DOMContentLoaded", () => {
      =============================== */
   function enableDebugControls() {
     debugSky?.setAttribute("visible", "true");
-
     camera.setAttribute("position", "0 1.6 0");
     camera.setAttribute("look-controls", "enabled:true");
-
     setWASDEnabled(true);
-
-    window.addEventListener("keydown", (e) => {
-      if (!window.__DEBUG_MODE__) return;
-      const pos = camera.object3D.position;
-      if (e.code === "KeyQ") pos.y += 0.1;
-      if (e.code === "KeyE") pos.y -= 0.1;
-    });
-
-    showDebugToast();
   }
 
   /* ===============================
@@ -128,16 +83,12 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.style.pointerEvents = "none";
     setTimeout(() => (overlay.style.display = "none"), 600);
 
-    // ANDROID → real WebXR AR
+    // ANDROID → WebXR AR
     if (!debugMode && scene.enterAR && !isIOS) {
-      try {
-        await scene.enterAR();
-      } catch (e) {
-        console.warn("AR entry failed", e);
-      }
+      try { await scene.enterAR(); } catch {}
     }
 
-    // iOS → camera passthrough fallback
+    // iOS → camera passthrough
     if (!debugMode && isIOS) {
       await enableIOSCameraPassthrough();
     }
@@ -150,37 +101,26 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!introPlayed) {
       introPlayed = true;
-
-      // 🔒 Freeze WASD during intro (debug only)
       setWASDEnabled(false);
 
       intro.components.sound.playSound();
-
-      intro.addEventListener(
-        "sound-ended",
-        () => {
-          setWASDEnabled(true);
-          scene.systems["path-manager"]?.spawnInitialDirections();
-        },
-        { once: true }
-      );
+      intro.addEventListener("sound-ended", () => {
+        setWASDEnabled(true);
+        scene.systems["path-manager"]?.spawnInitialDirections();
+      }, { once: true });
     }
   }
 
   /* ===============================
      INPUT
      =============================== */
-
-  // Desktop: click (Shift = debug)
   startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
-
     await unlockAudio();
     startExperience();
   });
 
-  // Mobile: long-press for debug
   startBtn.addEventListener("touchstart", () => {
     longPressTimer = setTimeout(() => {
       debugMode = true;
