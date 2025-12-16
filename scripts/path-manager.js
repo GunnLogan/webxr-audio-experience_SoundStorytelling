@@ -1,6 +1,5 @@
 const CHEST_Y = 1.3;
 const STEP = 0.5;
-const IS_IOS = window.IS_IOS === true;
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -65,10 +64,13 @@ const PATH_GRAPH = {
 AFRAME.registerSystem("path-manager", {
   init() {
     this.root = document.querySelector("#experienceRoot");
+    if (!this.root) {
+      console.error("[path-manager] #experienceRoot not found");
+      return;
+    }
+
     this.active = new Map();
     this.played = new Set();
-    this.choiceGroups = new Map();
-    this.rootNodes = ["front_1", "back_1", "left_1", "right_1"];
     this.rootLocked = false;
   },
 
@@ -76,13 +78,11 @@ AFRAME.registerSystem("path-manager", {
     this.clearAll();
     this.rootLocked = false;
 
-    if (IS_IOS) {
-      // iOS: spawn ONE choice at center at a time
+    if (window.IS_IOS) {
       this.spawnNode("front_1", this.center());
       return;
     }
 
-    // Desktop / Android
     this.spawnNode("front_1", this.forward(1));
     this.spawnNode("back_1", this.forward(-1));
     this.spawnNode("left_1", this.right(-1));
@@ -92,7 +92,6 @@ AFRAME.registerSystem("path-manager", {
   clearAll() {
     this.root.innerHTML = "";
     this.active.clear();
-    this.choiceGroups.clear();
   },
 
   spawnNode(id, pos, parentId = null) {
@@ -132,7 +131,7 @@ AFRAME.registerSystem("path-manager", {
     }
 
     nextIds.forEach(nextId => {
-      if (IS_IOS) {
+      if (window.IS_IOS) {
         this.spawnNode(nextId, this.center(), id);
       } else {
         const def = PATH_GRAPH[nextId];
@@ -164,10 +163,10 @@ AFRAME.registerSystem("path-manager", {
   },
 
   forward(m) {
-    return { x: 0, y: CHEST_Y, z: -m };
+    return new THREE.Vector3(0, CHEST_Y, -m);
   },
 
   right(m) {
-    return { x: m, y: CHEST_Y, z: 0 };
+    return new THREE.Vector3(m, CHEST_Y, 0);
   }
 });
