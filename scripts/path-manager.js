@@ -1,9 +1,9 @@
 const CHEST_Y = 1.3;
-const STEP = 0.75;           // 75 cm between nodes
-const ROOT_DISTANCE = 1.5;   // 150 cm initial spacing
+const STEP = 0.75;
+const ROOT_DISTANCE = 1.5;
 
 /* =====================================================
-   PATH GRAPH — AUTHORITATIVE
+   PATH GRAPH
    ===================================================== */
 
 const PATH_GRAPH = {
@@ -47,14 +47,14 @@ const PATH_GRAPH = {
   right_7: { color: "#0066ff", next: ["end_b", "end_a"] },
 
   end_a: { color: "#88ffee", next: ["explore_more"] },
-  end_b: { color: "#ff4444", next: ["bomb_end"] },
+  end_b: { color: "#ff4444", next: ["end"] },
 
   explore_more: { color: "#ffffff", next: [] },
-  bomb_end: { color: "#000000", next: [] }
+  end: { color: "#000000", next: [] }
 };
 
 /* =====================================================
-   PATH MANAGER SYSTEM
+   PATH MANAGER
    ===================================================== */
 
 AFRAME.registerSystem("path-manager", {
@@ -62,26 +62,23 @@ AFRAME.registerSystem("path-manager", {
     this.root = document.querySelector("#experienceRoot");
     this.active = new Map();
     this.played = new Set();
-
-    // 🔒 Remember where the experience started
     this.startOrigin = null;
   },
 
-  /* =====================================================
-     INITIAL ROOT NODES
-     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
-    // Store start origin ONCE
     if (!this.startOrigin) {
-      this.startOrigin = new THREE.Vector3(0, CHEST_Y, 0);
+      const cam = this.sceneEl.camera.el.object3D;
+      this.startOrigin = cam.position.clone().setY(CHEST_Y);
     }
 
-    this.spawnNode("front_1", this.forward(ROOT_DISTANCE));
-    this.spawnNode("back_1", this.forward(-ROOT_DISTANCE));
-    this.spawnNode("left_1", this.right(-ROOT_DISTANCE));
-    this.spawnNode("right_1", this.right(ROOT_DISTANCE));
+    const o = this.startOrigin.clone();
+
+    this.spawnNode("front_1", o.clone().add(new THREE.Vector3(0, 0, -ROOT_DISTANCE)));
+    this.spawnNode("back_1",  o.clone().add(new THREE.Vector3(0, 0,  ROOT_DISTANCE)));
+    this.spawnNode("left_1",  o.clone().add(new THREE.Vector3(-ROOT_DISTANCE, 0, 0)));
+    this.spawnNode("right_1", o.clone().add(new THREE.Vector3( ROOT_DISTANCE, 0, 0)));
   },
 
   clearAll() {
@@ -111,9 +108,6 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
-  /* =====================================================
-     COMPLETE NODE
-     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
 
@@ -123,14 +117,18 @@ AFRAME.registerSystem("path-manager", {
     const basePos = finishedEl.object3D.position.clone();
     this.played.add(id);
 
-    // Lock branch
     this.active.forEach(el => el.remove());
     this.active.clear();
 
-    // 🔁 EXPLORE MORE = RESET WITHOUT INTRO
+    // 🔁 explore_more → restart
     if (id === "explore_more") {
       this.played.clear();
       this.spawnInitialDirections();
+      return;
+    }
+
+    // ⛔ end → stop completely
+    if (id === "end") {
       return;
     }
 
@@ -142,16 +140,11 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
-  /* =====================================================
-     POSITION HELPERS
-     ===================================================== */
   forwardFromNode(origin) {
-    const camPos = this.sceneEl.camera.el.object3D.position.clone();
-    const dir = origin.clone().sub(camPos);
+    const cam = this.sceneEl.camera.el.object3D;
+    const dir = origin.clone().sub(cam.position);
 
-    if (dir.lengthSq() < 0.0001) {
-      dir.set(0, 0, -1);
-    }
+    if (dir.lengthSq() < 0.0001) dir.set(0, 0, -1);
 
     return origin.clone()
       .add(dir.normalize().multiplyScalar(STEP))
@@ -159,13 +152,10 @@ AFRAME.registerSystem("path-manager", {
   },
 
   branchFromNode(origin, side) {
-    const camPos = this.sceneEl.camera.el.object3D.position.clone();
-    const forward = origin.clone().sub(camPos);
+    const cam = this.sceneEl.camera.el.object3D;
+    const forward = origin.clone().sub(cam.position);
 
-    if (forward.lengthSq() < 0.0001) {
-      forward.set(0, 0, -1);
-    }
-
+    if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
     forward.normalize();
 
     const right = new THREE.Vector3()
@@ -176,13 +166,5 @@ AFRAME.registerSystem("path-manager", {
       .add(forward.multiplyScalar(STEP))
       .add(right.multiplyScalar(STEP * side))
       .setY(CHEST_Y);
-  },
-
-  forward(d) {
-    return new THREE.Vector3(0, CHEST_Y, -d);
-  },
-
-  right(d) {
-    return new THREE.Vector3(d, CHEST_Y, 0);
   }
 });
