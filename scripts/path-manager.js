@@ -30,7 +30,7 @@ const PATH_GRAPH = {
   left_1: { color: "#ff0000", next: ["left_2"] },
   left_2: { color: "#ff0000", next: ["left_3a", "left_3b"] },
   left_3a: { color: "#ff0000", next: ["left_4a"] },
-  left_3b: { color: "#ff0000", next: ["left_4b"] },
+  left_3b: { color: "#ff0000", next: ["left_4b", "left_3a"] },
   left_4a: { color: "#ff0000", next: ["end_b", "end_a"] },
   left_4b: { color: "#ff0000", next: ["end_b", "end_a"] },
 
