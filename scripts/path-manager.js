@@ -1,9 +1,9 @@
 const CHEST_Y = 1.3;
-const STEP = 1;
-const ROOT_DISTANCE = 1.5;
+const STEP = 0.75;          // distance between nodes
+const ROOT_DISTANCE = 1.5;  // initial spacing from start
 
 /* =====================================================
-   PATH GRAPH
+   PATH GRAPH — NARRATIVE ONLY
    ===================================================== */
 
 const PATH_GRAPH = {
@@ -30,7 +30,7 @@ const PATH_GRAPH = {
   left_1: { color: "#ff0000", next: ["left_2"] },
   left_2: { color: "#ff0000", next: ["left_3a", "left_3b"] },
   left_3a: { color: "#ff0000", next: ["left_4a"] },
-  left_3b: { color: "#ff0000", next: ["left_4b", "left_3a"] },
+  left_3b: { color: "#ff0000", next: ["left_4b"] },
   left_4a: { color: "#ff0000", next: ["end_b", "end_a"] },
   left_4b: { color: "#ff0000", next: ["end_b", "end_a"] },
 
@@ -56,7 +56,7 @@ const PATH_GRAPH = {
 };
 
 /* =====================================================
-   PATH MANAGER
+   PATH MANAGER SYSTEM
    ===================================================== */
 
 AFRAME.registerSystem("path-manager", {
@@ -64,23 +64,41 @@ AFRAME.registerSystem("path-manager", {
     this.root = document.querySelector("#experienceRoot");
     this.active = new Map();
     this.played = new Set();
+
+    // Stored once at experience start
     this.startOrigin = null;
+    this.startForward = null;
+    this.startRight = null;
   },
 
+  /* =====================================================
+     INITIAL ROOT SPAWN
+     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
     if (!this.startOrigin) {
       const cam = this.sceneEl.camera.el.object3D;
+
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
+
+      // Lock orientation forever
+      this.startForward = new THREE.Vector3(0, 0, -1)
+        .applyQuaternion(cam.quaternion)
+        .setY(0)
+        .normalize();
+
+      this.startRight = new THREE.Vector3()
+        .crossVectors(this.startForward, new THREE.Vector3(0, 1, 0))
+        .normalize();
     }
 
-    const o = this.startOrigin.clone();
+    const o = this.startOrigin;
 
-    this.spawnNode("front_1", o.clone().add(new THREE.Vector3(0, 0, -ROOT_DISTANCE)));
-    this.spawnNode("back_1",  o.clone().add(new THREE.Vector3(0, 0,  ROOT_DISTANCE)));
-    this.spawnNode("left_1",  o.clone().add(new THREE.Vector3(-ROOT_DISTANCE, 0, 0)));
-    this.spawnNode("right_1", o.clone().add(new THREE.Vector3( ROOT_DISTANCE, 0, 0)));
+    this.spawnNode("front_1", o.clone().add(this.startForward.clone().multiplyScalar(ROOT_DISTANCE)));
+    this.spawnNode("back_1",  o.clone().add(this.startForward.clone().multiplyScalar(-ROOT_DISTANCE)));
+    this.spawnNode("right_1", o.clone().add(this.startRight.clone().multiplyScalar(ROOT_DISTANCE)));
+    this.spawnNode("left_1",  o.clone().add(this.startRight.clone().multiplyScalar(-ROOT_DISTANCE)));
   },
 
   clearAll() {
@@ -110,39 +128,49 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
+  /* =====================================================
+     COMPLETE NODE
+     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
 
     const finishedEl = this.active.get(id);
     if (!finishedEl) return;
 
-    const origin = finishedEl.object3D.position.clone();
+    const basePos = finishedEl.object3D.position.clone();
     this.played.add(id);
 
+    // Lock branch
     this.active.forEach(el => el.remove());
     this.active.clear();
 
+    // 🔁 Restart experience
     if (id === "explore_more") {
       this.played.clear();
       this.spawnInitialDirections();
       return;
     }
 
+    // ⛔ Terminal end
     if (id === "end") return;
 
     if (nextIds.length === 1) {
       this.spawnNode(
         nextIds[0],
-        origin.clone().add(new THREE.Vector3(0, 0, -STEP))
+        basePos.clone().add(this.startForward.clone().multiplyScalar(STEP))
       );
     } else {
       this.spawnNode(
         nextIds[0],
-        origin.clone().add(new THREE.Vector3(-STEP, 0, -STEP))
+        basePos.clone()
+          .add(this.startForward.clone().multiplyScalar(STEP))
+          .add(this.startRight.clone().multiplyScalar(-STEP))
       );
       this.spawnNode(
         nextIds[1],
-        origin.clone().add(new THREE.Vector3( STEP, 0, -STEP))
+        basePos.clone()
+          .add(this.startForward.clone().multiplyScalar(STEP))
+          .add(this.startRight.clone().multiplyScalar(STEP))
       );
     }
   }
