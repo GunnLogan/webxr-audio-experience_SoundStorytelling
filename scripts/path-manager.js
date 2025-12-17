@@ -65,7 +65,7 @@ AFRAME.registerSystem("path-manager", {
     this.active = new Map();
     this.played = new Set();
 
-    // Stored once at experience start
+    // Stored once per session
     this.startOrigin = null;
 
     // Stored once per branch
@@ -84,7 +84,7 @@ AFRAME.registerSystem("path-manager", {
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
     }
 
-    // Reset branch direction
+    // Reset branch direction when restarting
     this.branchForward = null;
 
     const o = this.startOrigin.clone();
@@ -131,28 +131,52 @@ AFRAME.registerSystem("path-manager", {
     const finishedEl = this.active.get(id);
     if (!finishedEl) return;
 
-    const basePos = finishedEl.object3D.position.clone();
     this.played.add(id);
 
-    // Remove all active nodes
+    // Remove all current nodes
     this.active.forEach(el => el.remove());
     this.active.clear();
 
-    // 🔁 Restart (NO intro)
+    /* =========================================
+       🔁 EXPLORE MORE → DEAD CENTER + ROOTS
+       ========================================= */
     if (id === "explore_more") {
       this.played.clear();
       this.spawnInitialDirections();
       return;
     }
 
-    // ⛔ Hard end (nothing spawns after)
+    /* =========================================
+       ⛔ END → DEAD CENTER + RELOAD
+       ========================================= */
     if (id === "end") {
       this.spawnNode("end", this.startOrigin.clone());
+
+      // Let end.wav play, then reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
       return;
     }
 
-    // 📐 Establish branch-local forward ONCE
+    /* =========================================
+       📍 META NODES (CENTER SPAWN)
+       ========================================= */
+    if (
+      nextIds.length === 1 &&
+      (nextIds[0] === "explore_more" || nextIds[0] === "end")
+    ) {
+      this.spawnNode(nextIds[0], this.startOrigin.clone());
+      return;
+    }
+
+    /* =========================================
+       📐 ESTABLISH BRANCH FORWARD (ONCE)
+       ========================================= */
     if (!this.branchForward) {
+      const basePos = finishedEl.object3D.position.clone();
+
       this.branchForward = basePos.clone()
         .sub(this.startOrigin)
         .setY(0)
@@ -163,32 +187,30 @@ AFRAME.registerSystem("path-manager", {
       }
     }
 
-    // 🌟 Special-case meta nodes → dead center
-    if (nextIds.length === 1 && (nextIds[0] === "explore_more" || nextIds[0] === "end")) {
-      this.spawnNode(nextIds[0], this.startOrigin.clone());
-      return;
-    }
+    const basePos = finishedEl.object3D.position.clone();
 
-    // ➡️ Normal progression
+    /* =========================================
+       ➡️ NORMAL BRANCH SPAWNING
+       ========================================= */
     if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFromNode(basePos));
+      this.spawnNode(nextIds[0], this.forwardFrom(basePos));
     } else {
-      this.spawnNode(nextIds[0], this.branchFromNode(basePos, -1));
-      this.spawnNode(nextIds[1], this.branchFromNode(basePos, 1));
+      this.spawnNode(nextIds[0], this.branchFrom(basePos, -1));
+      this.spawnNode(nextIds[1], this.branchFrom(basePos, 1));
     }
   },
 
   /* =====================================================
-     DIRECTION HELPERS — BRANCH-LOCAL SPACE
+     DIRECTION HELPERS — BRANCH-LOCAL
      ===================================================== */
 
-  forwardFromNode(origin) {
+  forwardFrom(origin) {
     return origin.clone()
       .add(this.branchForward.clone().multiplyScalar(STEP))
       .setY(CHEST_Y);
   },
 
-  branchFromNode(origin, side) {
+  branchFrom(origin, side) {
     const right = new THREE.Vector3()
       .crossVectors(this.branchForward, new THREE.Vector3(0, 1, 0))
       .normalize();
