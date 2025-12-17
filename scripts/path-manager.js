@@ -65,10 +65,10 @@ AFRAME.registerSystem("path-manager", {
     this.active = new Map();
     this.played = new Set();
 
-    // Stored once, at experience start
+    // Stored once at experience start
     this.startOrigin = null;
 
-    // Stored once, when first root node is chosen
+    // Stored once per branch
     this.branchForward = null;
   },
 
@@ -84,7 +84,7 @@ AFRAME.registerSystem("path-manager", {
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
     }
 
-    // Reset branch direction on restart
+    // Reset branch direction
     this.branchForward = null;
 
     const o = this.startOrigin.clone();
@@ -134,19 +134,22 @@ AFRAME.registerSystem("path-manager", {
     const basePos = finishedEl.object3D.position.clone();
     this.played.add(id);
 
-    // 🔒 Lock branch & remove old nodes
+    // Remove all active nodes
     this.active.forEach(el => el.remove());
     this.active.clear();
 
-    // 🔁 Restart logic
+    // 🔁 Restart (NO intro)
     if (id === "explore_more") {
       this.played.clear();
       this.spawnInitialDirections();
       return;
     }
 
-    // ⛔ End stops spawning
-    if (id === "end") return;
+    // ⛔ Hard end (nothing spawns after)
+    if (id === "end") {
+      this.spawnNode("end", this.startOrigin.clone());
+      return;
+    }
 
     // 📐 Establish branch-local forward ONCE
     if (!this.branchForward) {
@@ -160,7 +163,13 @@ AFRAME.registerSystem("path-manager", {
       }
     }
 
-    // ➡️ Spawn next node(s)
+    // 🌟 Special-case meta nodes → dead center
+    if (nextIds.length === 1 && (nextIds[0] === "explore_more" || nextIds[0] === "end")) {
+      this.spawnNode(nextIds[0], this.startOrigin.clone());
+      return;
+    }
+
+    // ➡️ Normal progression
     if (nextIds.length === 1) {
       this.spawnNode(nextIds[0], this.forwardFromNode(basePos));
     } else {
