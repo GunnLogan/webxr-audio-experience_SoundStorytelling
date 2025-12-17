@@ -13,7 +13,7 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.el.classList.add("clickable");
 
-    // 🍎 iOS: TAP ONLY (NO touchstart!)
+    // 🍎 iOS: TAP ONLY
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
     }
@@ -51,11 +51,10 @@ AFRAME.registerComponent("path-node", {
     if (this.triggered || this.disabled) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
-    // 🔒 LOCK FIRST
     this.triggered = true;
     window.__CURRENT_AUDIO_NODE__ = this;
 
-    // 🍎 iOS — ENSURE AUDIO CONTEXT IS RESUMED
+    // 🍎 iOS — ensure audio context unlocked
     if (window.IS_IOS) {
       const ctx = AFRAME.audioContext;
       if (ctx && ctx.state === "suspended") {
@@ -63,31 +62,16 @@ AFRAME.registerComponent("path-node", {
       }
     }
 
-    // 🔥 REMOVE ALL SIBLING NODES
-    this.system.active.forEach((el, key) => {
-      if (key !== this.data.id) {
-        const comp = el.components["path-node"];
-        if (comp) comp.disable();
-        el.remove();
-      }
-    });
-    this.system.active.clear();
-
-    // Hide this node visually
+    // Hide this node visually (but DO NOT remove others here)
     this.el.setAttribute("visible", false);
 
-    // ▶️ PLAY AUDIO
     if (!this.sound?.components?.sound) {
       this.finish();
       return;
     }
 
     this.sound.components.sound.playSound();
-    this.sound.addEventListener(
-      "sound-ended",
-      () => this.finish(),
-      { once: true }
-    );
+    this.sound.addEventListener("sound-ended", () => this.finish(), { once: true });
   },
 
   finish() {
@@ -100,7 +84,7 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // Hand off to path-manager
+    // ✅ ONLY path-manager handles cleanup & spawning
     this.system.completeNode(this.data.id, this.data.next);
   }
 });
