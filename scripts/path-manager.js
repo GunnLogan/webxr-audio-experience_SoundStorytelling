@@ -116,57 +116,34 @@ AFRAME.registerSystem("path-manager", {
     const finishedEl = this.active.get(id);
     if (!finishedEl) return;
 
-    const basePos = finishedEl.object3D.position.clone();
+    const origin = finishedEl.object3D.position.clone();
     this.played.add(id);
 
     this.active.forEach(el => el.remove());
     this.active.clear();
 
-    // 🔁 explore_more → restart
     if (id === "explore_more") {
       this.played.clear();
       this.spawnInitialDirections();
       return;
     }
 
-    // ⛔ end → stop completely
-    if (id === "end") {
-      return;
-    }
+    if (id === "end") return;
 
     if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFromNode(basePos));
+      this.spawnNode(
+        nextIds[0],
+        origin.clone().add(new THREE.Vector3(0, 0, -STEP))
+      );
     } else {
-      this.spawnNode(nextIds[0], this.branchFromNode(basePos, -1));
-      this.spawnNode(nextIds[1], this.branchFromNode(basePos, 1));
+      this.spawnNode(
+        nextIds[0],
+        origin.clone().add(new THREE.Vector3(-STEP, 0, -STEP))
+      );
+      this.spawnNode(
+        nextIds[1],
+        origin.clone().add(new THREE.Vector3( STEP, 0, -STEP))
+      );
     }
-  },
-
-  forwardFromNode(origin) {
-    const cam = this.sceneEl.camera.el.object3D;
-    const dir = origin.clone().sub(cam.position);
-
-    if (dir.lengthSq() < 0.0001) dir.set(0, 0, -1);
-
-    return origin.clone()
-      .add(dir.normalize().multiplyScalar(STEP))
-      .setY(CHEST_Y);
-  },
-
-  branchFromNode(origin, side) {
-    const cam = this.sceneEl.camera.el.object3D;
-    const forward = origin.clone().sub(cam.position);
-
-    if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
-    forward.normalize();
-
-    const right = new THREE.Vector3()
-      .crossVectors(forward, new THREE.Vector3(0, 1, 0))
-      .normalize();
-
-    return origin.clone()
-      .add(forward.multiplyScalar(STEP))
-      .add(right.multiplyScalar(STEP * side))
-      .setY(CHEST_Y);
   }
 });
