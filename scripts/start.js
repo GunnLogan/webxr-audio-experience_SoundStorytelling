@@ -10,6 +10,11 @@ window.__CURRENT_AUDIO_NODE__ = null;
 window.__CURRENT_AUDIO_ENTITY__ = null;
 window.__DEBUG_MODE__ = false;
 
+const iosAudioBtn = document.querySelector("#iosAudioButton");
+
+if (window.IS_IOS && iosAudioBtn) {
+  iosAudioBtn.style.display = "block";
+}
 window.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.querySelector("#startButton");
   const overlay = document.querySelector("#startOverlay");
