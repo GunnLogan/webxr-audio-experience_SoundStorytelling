@@ -1,6 +1,6 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5;           // 50 cm
-const ROOT_DISTANCE = 1.2;  // 120 cm
+const STEP = 0.75;           // 50 cm
+const ROOT_DISTANCE = 1.5;  // 120 cm
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
