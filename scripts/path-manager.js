@@ -2,8 +2,12 @@ const CHEST_Y = 1.3;
 const STEP = 1.0;           // 1 meter between nodes
 const ROOT_DISTANCE = 1.5;  // initial spacing
 
+const CHEST_Y = 1.3;
+const STEP = 1.0;           // 1 meter between nodes (safe vs triggerDistance)
+const ROOT_DISTANCE = 1.5;  // initial spacing
+
 /* =====================================================
-   PATH GRAPH — UNCHANGED
+   PATH GRAPH — UNCHANGED (AUTHORITATIVE)
    ===================================================== */
 
 const PATH_GRAPH = {
@@ -54,6 +58,143 @@ const PATH_GRAPH = {
   explore_more: { color: "#ffffff", next: [] },
   end: { color: "#000000", next: [] }
 };
+
+/* =====================================================
+   PATH MANAGER SYSTEM
+   ===================================================== */
+
+AFRAME.registerSystem("path-manager", {
+  init() {
+    this.root = document.querySelector("#experienceRoot");
+    this.active = new Map();
+    this.played = new Set();
+
+    // Stored once, at experience start
+    this.startOrigin = null;
+
+    // Stored once, when first root node is chosen
+    this.branchForward = null;
+  },
+
+  /* =====================================================
+     INITIAL ROOT NODES (GLOBAL SPACE)
+     ===================================================== */
+  spawnInitialDirections() {
+    this.clearAll();
+
+    const cam = this.sceneEl.camera.el.object3D;
+
+    if (!this.startOrigin) {
+      this.startOrigin = cam.position.clone().setY(CHEST_Y);
+    }
+
+    // Reset branch direction on restart
+    this.branchForward = null;
+
+    const o = this.startOrigin.clone();
+
+    this.spawnNode("front_1", o.clone().add(new THREE.Vector3(0, 0, -ROOT_DISTANCE)));
+    this.spawnNode("back_1",  o.clone().add(new THREE.Vector3(0, 0,  ROOT_DISTANCE)));
+    this.spawnNode("left_1",  o.clone().add(new THREE.Vector3(-ROOT_DISTANCE, 0, 0)));
+    this.spawnNode("right_1", o.clone().add(new THREE.Vector3( ROOT_DISTANCE, 0, 0)));
+  },
+
+  clearAll() {
+    this.root.innerHTML = "";
+    this.active.clear();
+  },
+
+  spawnNode(id, position) {
+    if (this.active.has(id) || this.played.has(id)) return;
+
+    const def = PATH_GRAPH[id];
+    if (!def) return;
+
+    const el = document.createElement("a-sphere");
+    el.setAttribute("radius", 0.25);
+    el.setAttribute("position", position);
+    el.setAttribute("material", {
+      color: def.color,
+      opacity: 0.6,
+      transparent: true
+    });
+
+    el.setAttribute("soft-pulse", "");
+    el.setAttribute("path-node", { id, next: def.next });
+
+    this.root.appendChild(el);
+    this.active.set(id, el);
+  },
+
+  /* =====================================================
+     NODE COMPLETION
+     ===================================================== */
+  completeNode(id, nextIds) {
+    if (this.played.has(id)) return;
+
+    const finishedEl = this.active.get(id);
+    if (!finishedEl) return;
+
+    const basePos = finishedEl.object3D.position.clone();
+    this.played.add(id);
+
+    // 🔒 Lock branch & remove old nodes
+    this.active.forEach(el => el.remove());
+    this.active.clear();
+
+    // 🔁 Restart logic
+    if (id === "explore_more") {
+      this.played.clear();
+      this.spawnInitialDirections();
+      return;
+    }
+
+    // ⛔ End stops spawning
+    if (id === "end") return;
+
+    // 📐 Establish branch-local forward ONCE
+    if (!this.branchForward) {
+      this.branchForward = basePos.clone()
+        .sub(this.startOrigin)
+        .setY(0)
+        .normalize();
+
+      if (this.branchForward.lengthSq() < 0.0001) {
+        this.branchForward.set(0, 0, -1);
+      }
+    }
+
+    // ➡️ Spawn next node(s)
+    if (nextIds.length === 1) {
+      this.spawnNode(nextIds[0], this.forwardFromNode(basePos));
+    } else {
+      this.spawnNode(nextIds[0], this.branchFromNode(basePos, -1));
+      this.spawnNode(nextIds[1], this.branchFromNode(basePos, 1));
+    }
+  },
+
+  /* =====================================================
+     DIRECTION HELPERS — BRANCH-LOCAL SPACE
+     ===================================================== */
+
+  forwardFromNode(origin) {
+    return origin.clone()
+      .add(this.branchForward.clone().multiplyScalar(STEP))
+      .setY(CHEST_Y);
+  },
+
+  branchFromNode(origin, side) {
+    const right = new THREE.Vector3()
+      .crossVectors(this.branchForward, new THREE.Vector3(0, 1, 0))
+      .normalize();
+
+    return origin.clone()
+      .add(this.branchForward.clone().multiplyScalar(STEP))
+      .add(right.multiplyScalar(STEP * side))
+      .setY(CHEST_Y);
+  }
+});
+
 
 /* =====================================================
    PATH MANAGER
