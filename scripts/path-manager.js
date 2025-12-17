@@ -17,11 +17,13 @@ const PATH_GRAPH = {
   front_5b: { color: "#ffffff", next: ["end_b", "end_a"] },
 
   back_1: { color: "#000000", next: ["back_2"] },
-  back_2: { color: "#000000", next: ["back_3a", "back_3b"] },
-  back_3a: { color: "#000000", next: ["back_4a"] },
-  back_3b: { color: "#000000", next: ["back_4b"] },
+  back_2: { color: "#000000", next: ["back_3b", "back_3a"] },
+  back_3a: { color: "#000000", next: ["back_4a", "back_4b"] },
+  back_3b: { color: "#000000", next: ["back_4c", "back_4d"] },
   back_4a: { color: "#000000", next: ["back_5a"] },
-  back_4b: { color: "#000000", next: ["back_5b"] },
+  back_4b: { color: "#000000", next: ["back_5a"] },
+  back_4c: { color: "#000000", next: ["back_5b"] },
+  back_4d: { color: "#000000", next: ["back_5b"] },
   back_5a: { color: "#000000", next: ["end_b", "end_a"] },
   back_5b: { color: "#000000", next: ["end_b", "end_a"] },
 
