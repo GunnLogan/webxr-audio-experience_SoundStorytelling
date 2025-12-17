@@ -1,6 +1,6 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5;           // 50 cm between nodes
-const ROOT_DISTANCE = 1.2;  // 120 cm initial spacing
+const STEP = 0.5;           // 50 cm
+const ROOT_DISTANCE = 1.2;  // 120 cm
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -126,25 +126,30 @@ AFRAME.registerSystem("path-manager", {
     }
 
     if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFrom(basePos, STEP));
+      this.spawnNode(nextIds[0], this.forwardFromNode(basePos));
     } else {
-      this.spawnNode(nextIds[0], this.diagonalFrom(basePos, -STEP, STEP));
-      this.spawnNode(nextIds[1], this.diagonalFrom(basePos, STEP, STEP));
+      this.spawnNode(nextIds[0], this.branchFromNode(basePos, -1));
+      this.spawnNode(nextIds[1], this.branchFromNode(basePos, 1));
     }
   },
 
   /* =====================================================
-     POSITION HELPERS — WORLD SPACE (NOT CAMERA)
+     POSITION HELPERS — RELATIVE TO USER DIRECTION
      ===================================================== */
-  forwardFrom(origin, d) {
-    return origin.clone()
-      .add(new THREE.Vector3(0, 0, -d))
-      .setY(CHEST_Y);
+  forwardFromNode(origin) {
+    const camPos = this.sceneEl.camera.el.object3D.position.clone();
+    const dir = origin.clone().sub(camPos).normalize();
+    return origin.clone().add(dir.multiplyScalar(STEP)).setY(CHEST_Y);
   },
 
-  diagonalFrom(origin, x, z) {
+  branchFromNode(origin, side) {
+    const camPos = this.sceneEl.camera.el.object3D.position.clone();
+    const forward = origin.clone().sub(camPos).normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
     return origin.clone()
-      .add(new THREE.Vector3(x, 0, -z))
+      .add(forward.multiplyScalar(STEP))
+      .add(right.multiplyScalar(STEP * side))
       .setY(CHEST_Y);
   },
 
