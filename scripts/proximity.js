@@ -13,13 +13,12 @@ AFRAME.registerComponent("path-node", {
     this.system = this.el.sceneEl.systems["path-manager"];
     this.el.classList.add("clickable");
 
-    // iPhone: tap only
+    // 🍎 iOS: TAP ONLY (NO touchstart!)
     if (window.IS_IOS) {
       this.el.addEventListener("click", () => this.handleTrigger());
-      this.el.addEventListener("touchstart", () => this.handleTrigger());
     }
 
-    // Load audio if it exists
+    // Load audio
     const src = `assets/audio/${this.data.id}.wav`;
     this.sound = document.createElement("a-entity");
     this.sound.setAttribute("sound", {
@@ -35,7 +34,7 @@ AFRAME.registerComponent("path-node", {
   },
 
   tick() {
-    // iPhone does not use distance triggers
+    // iOS does NOT use proximity
     if (window.IS_IOS) return;
     if (this.triggered || this.disabled) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
@@ -52,10 +51,19 @@ AFRAME.registerComponent("path-node", {
     if (this.triggered || this.disabled) return;
     if (window.__CURRENT_AUDIO_NODE__ || window.__CURRENT_AUDIO_ENTITY__) return;
 
+    // 🔒 LOCK FIRST
     this.triggered = true;
     window.__CURRENT_AUDIO_NODE__ = this;
 
-    // 🔥 IMMEDIATELY DISABLE + REMOVE ALL SIBLING NODES
+    // 🍎 iOS — ENSURE AUDIO CONTEXT IS RESUMED
+    if (window.IS_IOS) {
+      const ctx = AFRAME.audioContext;
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume();
+      }
+    }
+
+    // 🔥 REMOVE ALL SIBLING NODES
     this.system.active.forEach((el, key) => {
       if (key !== this.data.id) {
         const comp = el.components["path-node"];
@@ -65,9 +73,10 @@ AFRAME.registerComponent("path-node", {
     });
     this.system.active.clear();
 
-    // Hide this node visually but keep logic alive
+    // Hide this node visually
     this.el.setAttribute("visible", false);
 
+    // ▶️ PLAY AUDIO
     if (!this.sound?.components?.sound) {
       this.finish();
       return;
@@ -91,7 +100,7 @@ AFRAME.registerComponent("path-node", {
 
     window.__CURRENT_AUDIO_NODE__ = null;
 
-    // Delegate progression to path-manager
+    // Hand off to path-manager
     this.system.completeNode(this.data.id, this.data.next);
   }
 });
