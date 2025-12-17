@@ -1,6 +1,6 @@
 const CHEST_Y = 1.3;
-const STEP = 0.75;          // distance between nodes
-const ROOT_DISTANCE = 1.5;  // initial spacing
+const STEP = 1.0;            // ✅ 1 meter — safely outside trigger radius
+const ROOT_DISTANCE = 1.5;   // initial spacing
 
 /* =====================================================
    PATH GRAPH
@@ -76,6 +76,7 @@ AFRAME.registerSystem("path-manager", {
 
     if (!this.startOrigin) {
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
+
       this.startForward = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(cam.quaternion)
         .setY(0)
@@ -84,7 +85,7 @@ AFRAME.registerSystem("path-manager", {
 
     const o = this.startOrigin.clone();
     const f = this.startForward.clone();
-    const r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0, 1, 0));
+    const r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0, 1, 0)).normalize();
 
     this.spawnNode("front_1", o.clone().add(f.clone().multiplyScalar(ROOT_DISTANCE)));
     this.spawnNode("back_1",  o.clone().add(f.clone().multiplyScalar(-ROOT_DISTANCE)));
