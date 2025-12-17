@@ -39,7 +39,7 @@ window.addEventListener("DOMContentLoaded", () => {
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
 
-      // Transparent A-Frame
+      // Make A-Frame transparent
       scene.renderer.setClearColor(0x000000, 0);
     } catch (e) {
       console.warn("iOS camera failed:", e);
@@ -47,23 +47,22 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  // INTRO FINISH (NATURAL OR X)
+  // INTRO FINISH (NATURAL OR SKIPPED)
   // =====================================================
   function finishIntro() {
     if (!window.__CURRENT_AUDIO_ENTITY__) return;
 
-    try {
-      intro.components.sound.stopSound();
-    } catch {}
+    try { intro.components.sound.stopSound(); } catch {}
 
     window.__CURRENT_AUDIO_ENTITY__ = null;
+
     scene.systems["path-manager"]?.spawnInitialDirections();
   }
 
   // =====================================================
-  // START EXPERIENCE (VISUAL / XR ONLY)
+  // START EXPERIENCE (VISUAL ONLY)
   // =====================================================
-  async function startExperience() {
+  async function startExperienceVisuals() {
     // Hide overlay
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
@@ -101,27 +100,29 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  // START BUTTON — SINGLE USER GESTURE (CRITICAL)
+  // START BUTTON — iOS-SAFE AUDIO START
   // =====================================================
-  startBtn.addEventListener("click", async (e) => {
+  startBtn.addEventListener("click", (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
 
-    // 🔑 iOS AUDIO UNLOCK — MUST BE HERE
+    // 🔑 AUDIO MUST START HERE (SYNC)
     const ctx = AFRAME.audioContext;
     if (ctx?.state === "suspended") {
-      try { await ctx.resume(); } catch {}
+      ctx.resume();
     }
 
-    // 🔊 PLAY INTRO AUDIO
     if (!introPlayed) {
       introPlayed = true;
       window.__CURRENT_AUDIO_ENTITY__ = intro;
+
+      // 🔊 THIS WILL NOW WORK ON iOS
       intro.components.sound.playSound();
       intro.addEventListener("sound-ended", finishIntro, { once: true });
     }
 
-    startExperience();
+    // Visuals AFTER audio start
+    startExperienceVisuals();
   });
 
   // =====================================================
