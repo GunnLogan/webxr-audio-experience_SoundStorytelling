@@ -1,5 +1,5 @@
 const CHEST_Y = 1.3;
-const STEP = 1.0;           // 1 meter between nodes (safe vs triggerDistance)
+const STEP = 1.0;           // 1 meter between nodes
 const ROOT_DISTANCE = 1.5;  // initial spacing
 
 /* =====================================================
@@ -65,15 +65,12 @@ AFRAME.registerSystem("path-manager", {
     this.active = new Map();
     this.played = new Set();
 
-    // Stored once per session
+    // Stored ONCE at experience start
     this.startOrigin = null;
-
-    // Stored once per branch
-    this.branchForward = null;
   },
 
   /* =====================================================
-     INITIAL ROOT NODES (GLOBAL SPACE)
+     ROOT SPAWN — GLOBAL SPACE
      ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
@@ -83,9 +80,6 @@ AFRAME.registerSystem("path-manager", {
     if (!this.startOrigin) {
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
     }
-
-    // Reset branch direction when restarting
-    this.branchForward = null;
 
     const o = this.startOrigin.clone();
 
@@ -131,37 +125,37 @@ AFRAME.registerSystem("path-manager", {
     const finishedEl = this.active.get(id);
     if (!finishedEl) return;
 
+    const currPos = finishedEl.object3D.position.clone();
+    const prevPos = this.lastNodePos || this.startOrigin.clone();
+
+    this.lastNodePos = currPos.clone();
     this.played.add(id);
 
-    // Remove all current nodes
+    // Remove all active nodes
     this.active.forEach(el => el.remove());
     this.active.clear();
 
     /* =========================================
-       🔁 EXPLORE MORE → DEAD CENTER + ROOTS
+       EXPLORE MORE → CENTER + ROOT RESET
        ========================================= */
     if (id === "explore_more") {
       this.played.clear();
+      this.lastNodePos = null;
       this.spawnInitialDirections();
       return;
     }
 
     /* =========================================
-       ⛔ END → DEAD CENTER + RELOAD
+       END → CENTER + PAGE RESET
        ========================================= */
     if (id === "end") {
       this.spawnNode("end", this.startOrigin.clone());
-
-      // Let end.wav play, then reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-
+      setTimeout(() => window.location.reload(), 1500);
       return;
     }
 
     /* =========================================
-       📍 META NODES (CENTER SPAWN)
+       META NODES → CENTER SPAWN
        ========================================= */
     if (
       nextIds.length === 1 &&
@@ -172,51 +166,42 @@ AFRAME.registerSystem("path-manager", {
     }
 
     /* =========================================
-       📐 ESTABLISH BRANCH FORWARD (ONCE)
-       ========================================= */
-    if (!this.branchForward) {
-      const basePos = finishedEl.object3D.position.clone();
-
-      this.branchForward = basePos.clone()
-        .sub(this.startOrigin)
-        .setY(0)
-        .normalize();
-
-      if (this.branchForward.lengthSq() < 0.0001) {
-        this.branchForward.set(0, 0, -1);
-      }
-    }
-
-    const basePos = finishedEl.object3D.position.clone();
-
-    /* =========================================
-       ➡️ NORMAL BRANCH SPAWNING
+       NORMAL NODE-LOCAL SPAWNING
        ========================================= */
     if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFrom(basePos));
+      this.spawnNode(nextIds[0], this.forwardFrom(prevPos, currPos));
     } else {
-      this.spawnNode(nextIds[0], this.branchFrom(basePos, -1));
-      this.spawnNode(nextIds[1], this.branchFrom(basePos, 1));
+      this.spawnNode(nextIds[0], this.branchFrom(prevPos, currPos, -1));
+      this.spawnNode(nextIds[1], this.branchFrom(prevPos, currPos, 1));
     }
   },
 
   /* =====================================================
-     DIRECTION HELPERS — BRANCH-LOCAL
+     DIRECTION HELPERS — NODE-LOCAL (CORRECT)
      ===================================================== */
 
-  forwardFrom(origin) {
-    return origin.clone()
-      .add(this.branchForward.clone().multiplyScalar(STEP))
+  forwardFrom(prevPos, currPos) {
+    const dir = currPos.clone().sub(prevPos).setY(0);
+
+    if (dir.lengthSq() < 0.0001) dir.set(0, 0, -1);
+
+    return currPos.clone()
+      .add(dir.normalize().multiplyScalar(STEP))
       .setY(CHEST_Y);
   },
 
-  branchFrom(origin, side) {
+  branchFrom(prevPos, currPos, side) {
+    const forward = currPos.clone().sub(prevPos).setY(0);
+
+    if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
+    forward.normalize();
+
     const right = new THREE.Vector3()
-      .crossVectors(this.branchForward, new THREE.Vector3(0, 1, 0))
+      .crossVectors(forward, new THREE.Vector3(0, 1, 0))
       .normalize();
 
-    return origin.clone()
-      .add(this.branchForward.clone().multiplyScalar(STEP))
+    return currPos.clone()
+      .add(forward.multiplyScalar(STEP))
       .add(right.multiplyScalar(STEP * side))
       .setY(CHEST_Y);
   }
