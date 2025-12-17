@@ -1,5 +1,5 @@
 const CHEST_Y = 1.3;
-const STEP = 0.75;
+const STEP = 1;
 const ROOT_DISTANCE = 1.5;
 
 /* =====================================================
