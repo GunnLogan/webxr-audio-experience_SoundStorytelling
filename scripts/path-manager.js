@@ -2,10 +2,6 @@ const CHEST_Y = 1.3;
 const STEP = 0.5;          // 50 cm
 const ROOT_DISTANCE = 1.2; // 120 cm
 
-/* =====================================================
-   PATH GRAPH — AUTHORITATIVE
-   ===================================================== */
-
 const PATH_GRAPH = {
   front_1: { color: "#ffffff", next: ["front_2"] },
   front_2: { color: "#ffffff", next: ["front_3a", "front_3b"] },
@@ -53,10 +49,6 @@ const PATH_GRAPH = {
   bomb_end: { color: "#000000", next: [] }
 };
 
-/* =====================================================
-   PATH MANAGER SYSTEM
-   ===================================================== */
-
 AFRAME.registerSystem("path-manager", {
   init() {
     this.root = document.querySelector("#experienceRoot");
@@ -64,16 +56,13 @@ AFRAME.registerSystem("path-manager", {
     this.played = new Set();
   },
 
-  /* =====================================================
-     ROOT SPAWN
-     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
-    this.spawnNode("front_1", new THREE.Vector3(0, CHEST_Y, -ROOT_DISTANCE));
-    this.spawnNode("back_1",  new THREE.Vector3(0, CHEST_Y,  ROOT_DISTANCE));
-    this.spawnNode("left_1",  new THREE.Vector3(-ROOT_DISTANCE, CHEST_Y, 0));
-    this.spawnNode("right_1", new THREE.Vector3( ROOT_DISTANCE, CHEST_Y, 0));
+    this.spawnNode("front_1", this.forward(ROOT_DISTANCE));
+    this.spawnNode("back_1", this.forward(-ROOT_DISTANCE));
+    this.spawnNode("left_1", this.right(-ROOT_DISTANCE));
+    this.spawnNode("right_1", this.right(ROOT_DISTANCE));
   },
 
   clearAll() {
@@ -85,8 +74,9 @@ AFRAME.registerSystem("path-manager", {
     if (this.active.has(id) || this.played.has(id)) return;
 
     const def = PATH_GRAPH[id];
-    const el = document.createElement("a-sphere");
+    if (!def) return;
 
+    const el = document.createElement("a-sphere");
     el.setAttribute("radius", 0.25);
     el.setAttribute("position", position);
     el.setAttribute("material", {
@@ -102,20 +92,17 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
-  /* =====================================================
-     NODE COMPLETION
-     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
+
+    const finishedEl = this.active.get(id);
+    if (!finishedEl) return;
+
+    const basePos = finishedEl.object3D.position.clone();
+
     this.played.add(id);
 
-    const sourceEl = this.active.get(id);
-    if (!sourceEl) return;
-
-    // 🔑 capture position BEFORE removing anything
-    const base = sourceEl.object3D.position.clone();
-
-    // remove ALL current nodes (siblings included)
+    // remove all nodes
     this.active.forEach(el => el.remove());
     this.active.clear();
 
@@ -125,21 +112,35 @@ AFRAME.registerSystem("path-manager", {
       return;
     }
 
-    // ── spawn next ─────────────────────────────
     if (nextIds.length === 1) {
-      this.spawnNode(
-        nextIds[0],
-        base.clone().add(new THREE.Vector3(0, 0, -STEP))
-      );
+      this.spawnNode(nextIds[0], this.forwardFrom(basePos, STEP));
     } else {
-      this.spawnNode(
-        nextIds[0],
-        base.clone().add(new THREE.Vector3(-STEP, 0, -STEP))
-      );
-      this.spawnNode(
-        nextIds[1],
-        base.clone().add(new THREE.Vector3( STEP, 0, -STEP))
-      );
+      this.spawnNode(nextIds[0], this.diagonalFrom(basePos, -STEP, STEP));
+      this.spawnNode(nextIds[1], this.diagonalFrom(basePos, STEP, STEP));
     }
+  },
+
+  forwardFrom(origin, d) {
+    const cam = this.sceneEl.camera.el.object3D;
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    return origin.clone().add(f.multiplyScalar(d)).setY(CHEST_Y);
+  },
+
+  diagonalFrom(origin, x, z) {
+    const cam = this.sceneEl.camera.el.object3D;
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    return origin.clone()
+      .add(f.multiplyScalar(z))
+      .add(r.multiplyScalar(x))
+      .setY(CHEST_Y);
+  },
+
+  forward(d) {
+    return new THREE.Vector3(0, CHEST_Y, -d);
+  },
+
+  right(d) {
+    return new THREE.Vector3(d, CHEST_Y, 0);
   }
 });
