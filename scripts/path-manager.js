@@ -13,8 +13,8 @@ const PATH_GRAPH = {
   front_3b: { color: "#ffffff", next: ["front_4b"] },
   front_4a: { color: "#ffffff", next: ["front_5a"] },
   front_4b: { color: "#ffffff", next: ["front_5b"] },
-  front_5a: { color: "#ffffff", next: ["end_a", "end_b"] },
-  front_5b: { color: "#ffffff", next: ["end_a", "end_b"] },
+  front_5a: { color: "#ffffff", next: ["end_b", "end_a"] },
+  front_5b: { color: "#ffffff", next: ["end_b", "end_a"] },
 
   back_1: { color: "#000000", next: ["back_2"] },
   back_2: { color: "#000000", next: ["back_3b", "back_3a"] },
@@ -46,7 +46,7 @@ const PATH_GRAPH = {
   right_6a: { color: "#0066ff", next: ["right_7"] },
   right_6b: { color: "#0066ff", next: ["right_7"] },
   right_6c: { color: "#0066ff", next: ["right_7"] },
-  right_7: { color: "#0066ff", next: ["end_a", "end_b"] },
+  right_7: { color: "#0066ff", next: ["end_b", "end_a"] },
 
   end_a: { color: "#88ffee", next: ["explore_more"] },
   end_b: { color: "#ff4444", next: ["end"] },
