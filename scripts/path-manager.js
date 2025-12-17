@@ -65,8 +65,11 @@ AFRAME.registerSystem("path-manager", {
     this.active = new Map();
     this.played = new Set();
 
-    // Stored ONCE at experience start
+    // Stored once per session
     this.startOrigin = null;
+
+    // Locked once per branch (AFTER root selection)
+    this.branchForward = null;
   },
 
   /* =====================================================
@@ -80,6 +83,9 @@ AFRAME.registerSystem("path-manager", {
     if (!this.startOrigin) {
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
     }
+
+    // Reset local branch when restarting
+    this.branchForward = null;
 
     const o = this.startOrigin.clone();
 
@@ -126,12 +132,9 @@ AFRAME.registerSystem("path-manager", {
     if (!finishedEl) return;
 
     const currPos = finishedEl.object3D.position.clone();
-    const prevPos = this.lastNodePos || this.startOrigin.clone();
-
-    this.lastNodePos = currPos.clone();
     this.played.add(id);
 
-    // Remove all active nodes
+    // Remove all current nodes
     this.active.forEach(el => el.remove());
     this.active.clear();
 
@@ -140,7 +143,7 @@ AFRAME.registerSystem("path-manager", {
        ========================================= */
     if (id === "explore_more") {
       this.played.clear();
-      this.lastNodePos = null;
+      this.branchForward = null;
       this.spawnInitialDirections();
       return;
     }
@@ -166,42 +169,47 @@ AFRAME.registerSystem("path-manager", {
     }
 
     /* =========================================
-       NORMAL NODE-LOCAL SPAWNING
+       🔑 LOCK LOCAL FORWARD WHEN ROOT IS HIT
+       ========================================= */
+    if (!this.branchForward) {
+      this.branchForward = currPos.clone()
+        .sub(this.startOrigin)
+        .setY(0)
+        .normalize();
+
+      if (this.branchForward.lengthSq() < 0.0001) {
+        this.branchForward.set(0, 0, -1);
+      }
+    }
+
+    /* =========================================
+       NORMAL BRANCH SPAWNING (LOCAL SPACE)
        ========================================= */
     if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFrom(prevPos, currPos));
+      this.spawnNode(nextIds[0], this.forwardFrom(currPos));
     } else {
-      this.spawnNode(nextIds[0], this.branchFrom(prevPos, currPos, -1));
-      this.spawnNode(nextIds[1], this.branchFrom(prevPos, currPos, 1));
+      this.spawnNode(nextIds[0], this.branchFrom(currPos, -1));
+      this.spawnNode(nextIds[1], this.branchFrom(currPos, 1));
     }
   },
 
   /* =====================================================
-     DIRECTION HELPERS — NODE-LOCAL (CORRECT)
+     DIRECTION HELPERS — BRANCH LOCAL
      ===================================================== */
 
-  forwardFrom(prevPos, currPos) {
-    const dir = currPos.clone().sub(prevPos).setY(0);
-
-    if (dir.lengthSq() < 0.0001) dir.set(0, 0, -1);
-
-    return currPos.clone()
-      .add(dir.normalize().multiplyScalar(STEP))
+  forwardFrom(origin) {
+    return origin.clone()
+      .add(this.branchForward.clone().multiplyScalar(STEP))
       .setY(CHEST_Y);
   },
 
-  branchFrom(prevPos, currPos, side) {
-    const forward = currPos.clone().sub(prevPos).setY(0);
-
-    if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
-    forward.normalize();
-
+  branchFrom(origin, side) {
     const right = new THREE.Vector3()
-      .crossVectors(forward, new THREE.Vector3(0, 1, 0))
+      .crossVectors(this.branchForward, new THREE.Vector3(0, 1, 0))
       .normalize();
 
-    return currPos.clone()
-      .add(forward.multiplyScalar(STEP))
+    return origin.clone()
+      .add(this.branchForward.clone().multiplyScalar(STEP))
       .add(right.multiplyScalar(STEP * side))
       .setY(CHEST_Y);
   }
