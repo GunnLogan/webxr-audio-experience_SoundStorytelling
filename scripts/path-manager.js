@@ -1,6 +1,6 @@
 const CHEST_Y = 1.3;
-const STEP = 0.75;           // 50 cm
-const ROOT_DISTANCE = 1.5;  // 120 cm
+const STEP = 0.75;          // 75 cm between nodes
+const ROOT_DISTANCE = 1.5; // 150 cm initial spacing
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -115,7 +115,7 @@ AFRAME.registerSystem("path-manager", {
     const basePos = finishedEl.object3D.position.clone();
     this.played.add(id);
 
-    // Remove all active nodes (lock branch)
+    // Lock branch
     this.active.forEach(el => el.remove());
     this.active.clear();
 
@@ -134,18 +134,34 @@ AFRAME.registerSystem("path-manager", {
   },
 
   /* =====================================================
-     POSITION HELPERS — RELATIVE TO USER DIRECTION
+     POSITION HELPERS — RELATIVE TO USER
      ===================================================== */
   forwardFromNode(origin) {
     const camPos = this.sceneEl.camera.el.object3D.position.clone();
-    const dir = origin.clone().sub(camPos).normalize();
-    return origin.clone().add(dir.multiplyScalar(STEP)).setY(CHEST_Y);
+    const dir = origin.clone().sub(camPos);
+
+    if (dir.lengthSq() < 0.0001) {
+      dir.set(0, 0, -1);
+    }
+
+    return origin.clone()
+      .add(dir.normalize().multiplyScalar(STEP))
+      .setY(CHEST_Y);
   },
 
   branchFromNode(origin, side) {
     const camPos = this.sceneEl.camera.el.object3D.position.clone();
-    const forward = origin.clone().sub(camPos).normalize();
-    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    const forward = origin.clone().sub(camPos);
+
+    if (forward.lengthSq() < 0.0001) {
+      forward.set(0, 0, -1);
+    }
+
+    forward.normalize();
+
+    const right = new THREE.Vector3()
+      .crossVectors(forward, new THREE.Vector3(0, 1, 0))
+      .normalize();
 
     return origin.clone()
       .add(forward.multiplyScalar(STEP))
