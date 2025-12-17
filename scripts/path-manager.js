@@ -1,9 +1,9 @@
 const CHEST_Y = 1.3;
-const STEP = 1.0;            // ✅ 1 meter — safely outside trigger radius
-const ROOT_DISTANCE = 1.5;   // initial spacing
+const STEP = 1.0;           // 1 meter between nodes
+const ROOT_DISTANCE = 1.5;  // initial spacing
 
 /* =====================================================
-   PATH GRAPH
+   PATH GRAPH — UNCHANGED
    ===================================================== */
 
 const PATH_GRAPH = {
@@ -66,9 +66,11 @@ AFRAME.registerSystem("path-manager", {
     this.played = new Set();
 
     this.startOrigin = null;
-    this.startForward = null;
   },
 
+  /* =====================================================
+     INITIAL ROOT NODES
+     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
@@ -76,21 +78,14 @@ AFRAME.registerSystem("path-manager", {
 
     if (!this.startOrigin) {
       this.startOrigin = cam.position.clone().setY(CHEST_Y);
-
-      this.startForward = new THREE.Vector3(0, 0, -1)
-        .applyQuaternion(cam.quaternion)
-        .setY(0)
-        .normalize();
     }
 
     const o = this.startOrigin.clone();
-    const f = this.startForward.clone();
-    const r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0, 1, 0)).normalize();
 
-    this.spawnNode("front_1", o.clone().add(f.clone().multiplyScalar(ROOT_DISTANCE)));
-    this.spawnNode("back_1",  o.clone().add(f.clone().multiplyScalar(-ROOT_DISTANCE)));
-    this.spawnNode("left_1",  o.clone().add(r.clone().multiplyScalar(-ROOT_DISTANCE)));
-    this.spawnNode("right_1", o.clone().add(r.clone().multiplyScalar(ROOT_DISTANCE)));
+    this.spawnNode("front_1", o.clone().add(new THREE.Vector3(0, 0, -ROOT_DISTANCE)));
+    this.spawnNode("back_1",  o.clone().add(new THREE.Vector3(0, 0,  ROOT_DISTANCE)));
+    this.spawnNode("left_1",  o.clone().add(new THREE.Vector3(-ROOT_DISTANCE, 0, 0)));
+    this.spawnNode("right_1", o.clone().add(new THREE.Vector3( ROOT_DISTANCE, 0, 0)));
   },
 
   clearAll() {
@@ -120,6 +115,9 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
+  /* =====================================================
+     NODE COMPLETION
+     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
 
@@ -141,26 +139,39 @@ AFRAME.registerSystem("path-manager", {
     if (id === "end") return;
 
     if (nextIds.length === 1) {
-      this.spawnNode(nextIds[0], this.forwardFrom(basePos));
+      this.spawnNode(nextIds[0], this.forwardFromNode(basePos));
     } else {
-      this.spawnNode(nextIds[0], this.branchFrom(basePos, -1));
-      this.spawnNode(nextIds[1], this.branchFrom(basePos, 1));
+      this.spawnNode(nextIds[0], this.branchFromNode(basePos, -1));
+      this.spawnNode(nextIds[1], this.branchFromNode(basePos, 1));
     }
   },
 
-  forwardFrom(origin) {
+  /* =====================================================
+     DIRECTION HELPERS — FIXED
+     ===================================================== */
+
+  forwardFromNode(origin) {
+    const dir = origin.clone().sub(this.startOrigin);
+
+    if (dir.lengthSq() < 0.0001) dir.set(0, 0, -1);
+
     return origin.clone()
-      .add(this.startForward.clone().multiplyScalar(STEP))
+      .add(dir.normalize().multiplyScalar(STEP))
       .setY(CHEST_Y);
   },
 
-  branchFrom(origin, side) {
+  branchFromNode(origin, side) {
+    const forward = origin.clone().sub(this.startOrigin);
+
+    if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
+    forward.normalize();
+
     const right = new THREE.Vector3()
-      .crossVectors(this.startForward, new THREE.Vector3(0, 1, 0))
+      .crossVectors(forward, new THREE.Vector3(0, 1, 0))
       .normalize();
 
     return origin.clone()
-      .add(this.startForward.clone().multiplyScalar(STEP))
+      .add(forward.multiplyScalar(STEP))
       .add(right.multiplyScalar(STEP * side))
       .setY(CHEST_Y);
   }
