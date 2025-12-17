@@ -67,7 +67,18 @@
   >
 
     <!-- DEBUG SKY -->
-    <a-sky id="debugSky" color="#777777" visible="false"></a-sky>
+    <!-- <a-sky id="debugSky" color="#777777" visible="false"></a-sky> -->
+    
+    <a-assets>
+      <img id="debugSkyTexture" src="gardetSky.jpg">
+    </a-assets>
+
+    <a-sky
+      id="debugSky"
+      src="#debugSkyTexture"
+      visible="false">
+    </a-sky>
+
 
     <!-- CAMERA -->
     <a-entity
