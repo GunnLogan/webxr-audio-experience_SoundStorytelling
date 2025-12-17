@@ -1,6 +1,6 @@
 const CHEST_Y = 1.3;
-const STEP = 0.75;          // 75 cm between nodes
-const ROOT_DISTANCE = 1.5; // 150 cm initial spacing
+const STEP = 0.75;           // 75 cm between nodes
+const ROOT_DISTANCE = 1.5;   // 150 cm initial spacing
 
 /* =====================================================
    PATH GRAPH — AUTHORITATIVE
@@ -62,6 +62,9 @@ AFRAME.registerSystem("path-manager", {
     this.root = document.querySelector("#experienceRoot");
     this.active = new Map();
     this.played = new Set();
+
+    // 🔒 Remember where the experience started
+    this.startOrigin = null;
   },
 
   /* =====================================================
@@ -69,6 +72,11 @@ AFRAME.registerSystem("path-manager", {
      ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
+
+    // Store start origin ONCE
+    if (!this.startOrigin) {
+      this.startOrigin = new THREE.Vector3(0, CHEST_Y, 0);
+    }
 
     this.spawnNode("front_1", this.forward(ROOT_DISTANCE));
     this.spawnNode("back_1", this.forward(-ROOT_DISTANCE));
@@ -119,6 +127,7 @@ AFRAME.registerSystem("path-manager", {
     this.active.forEach(el => el.remove());
     this.active.clear();
 
+    // 🔁 EXPLORE MORE = RESET WITHOUT INTRO
     if (id === "explore_more") {
       this.played.clear();
       this.spawnInitialDirections();
@@ -134,7 +143,7 @@ AFRAME.registerSystem("path-manager", {
   },
 
   /* =====================================================
-     POSITION HELPERS — RELATIVE TO USER
+     POSITION HELPERS
      ===================================================== */
   forwardFromNode(origin) {
     const camPos = this.sceneEl.camera.el.object3D.position.clone();
