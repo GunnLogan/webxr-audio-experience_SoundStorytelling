@@ -10,11 +10,6 @@ window.__CURRENT_AUDIO_NODE__ = null;
 window.__CURRENT_AUDIO_ENTITY__ = null;
 window.__DEBUG_MODE__ = false;
 
-const iosAudioBtn = document.querySelector("#iosAudioButton");
-
-if (window.IS_IOS && iosAudioBtn) {
-  iosAudioBtn.style.display = "block";
-}
 window.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.querySelector("#startButton");
   const overlay = document.querySelector("#startOverlay");
@@ -44,7 +39,7 @@ window.addEventListener("DOMContentLoaded", () => {
       iosVideo.srcObject = stream;
       iosVideo.style.display = "block";
 
-      // Make A-Frame transparent
+      // Transparent A-Frame
       scene.renderer.setClearColor(0x000000, 0);
     } catch (e) {
       console.warn("iOS camera failed:", e);
@@ -52,7 +47,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  // INTRO FINISH
+  // INTRO FINISH (NATURAL OR X)
   // =====================================================
   function finishIntro() {
     if (!window.__CURRENT_AUDIO_ENTITY__) return;
@@ -66,7 +61,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  // START EXPERIENCE
+  // START EXPERIENCE (VISUAL / XR ONLY)
   // =====================================================
   async function startExperience() {
     // Hide overlay
@@ -75,7 +70,7 @@ window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => (overlay.style.display = "none"), 600);
 
     // -----------------------------
-    // DESKTOP DEBUG
+    // DESKTOP DEBUG MODE
     // -----------------------------
     if (debugMode) {
       debugSky?.setAttribute("visible", "true");
@@ -86,7 +81,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     // -----------------------------
-    // ANDROID AR
+    // ANDROID — REAL AR
     // -----------------------------
     if (!window.IS_IOS && scene.enterAR) {
       try {
@@ -97,7 +92,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     // -----------------------------
-    // iOS FAKE AR
+    // iOS — FAKE AR
     // -----------------------------
     if (window.IS_IOS) {
       debugSky?.setAttribute("visible", "false");
@@ -106,18 +101,19 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  // START BUTTON (IMPORTANT: AUDIO MUST START HERE)
+  // START BUTTON — SINGLE USER GESTURE (CRITICAL)
   // =====================================================
-  startBtn.addEventListener("click", (e) => {
+  startBtn.addEventListener("click", async (e) => {
     debugMode = e.shiftKey === true;
     window.__DEBUG_MODE__ = debugMode;
 
-    // 🔑 iOS AUDIO UNLOCK + PLAY MUST BE SYNC
+    // 🔑 iOS AUDIO UNLOCK — MUST BE HERE
     const ctx = AFRAME.audioContext;
     if (ctx?.state === "suspended") {
-      ctx.resume();
+      try { await ctx.resume(); } catch {}
     }
 
+    // 🔊 PLAY INTRO AUDIO
     if (!introPlayed) {
       introPlayed = true;
       window.__CURRENT_AUDIO_ENTITY__ = intro;
@@ -129,7 +125,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // =====================================================
-  // DESKTOP — X FINISHES CURRENT AUDIO
+  // DESKTOP — X FINISHES CURRENT AUDIO ONLY
   // =====================================================
   document.addEventListener(
     "keydown",
