@@ -1,6 +1,10 @@
 const CHEST_Y = 1.3;
-const STEP = 0.5;          // 50 cm
-const ROOT_DISTANCE = 1.2; // 120 cm
+const STEP = 0.5;           // 50 cm between nodes
+const ROOT_DISTANCE = 1.2;  // 120 cm initial spacing
+
+/* =====================================================
+   PATH GRAPH — AUTHORITATIVE
+   ===================================================== */
 
 const PATH_GRAPH = {
   front_1: { color: "#ffffff", next: ["front_2"] },
@@ -49,6 +53,10 @@ const PATH_GRAPH = {
   bomb_end: { color: "#000000", next: [] }
 };
 
+/* =====================================================
+   PATH MANAGER SYSTEM
+   ===================================================== */
+
 AFRAME.registerSystem("path-manager", {
   init() {
     this.root = document.querySelector("#experienceRoot");
@@ -56,6 +64,9 @@ AFRAME.registerSystem("path-manager", {
     this.played = new Set();
   },
 
+  /* =====================================================
+     INITIAL ROOT NODES
+     ===================================================== */
   spawnInitialDirections() {
     this.clearAll();
 
@@ -92,6 +103,9 @@ AFRAME.registerSystem("path-manager", {
     this.active.set(id, el);
   },
 
+  /* =====================================================
+     COMPLETE NODE
+     ===================================================== */
   completeNode(id, nextIds) {
     if (this.played.has(id)) return;
 
@@ -99,10 +113,9 @@ AFRAME.registerSystem("path-manager", {
     if (!finishedEl) return;
 
     const basePos = finishedEl.object3D.position.clone();
-
     this.played.add(id);
 
-    // remove all nodes
+    // Remove all active nodes (lock branch)
     this.active.forEach(el => el.remove());
     this.active.clear();
 
@@ -120,19 +133,18 @@ AFRAME.registerSystem("path-manager", {
     }
   },
 
+  /* =====================================================
+     POSITION HELPERS — WORLD SPACE (NOT CAMERA)
+     ===================================================== */
   forwardFrom(origin, d) {
-    const cam = this.sceneEl.camera.el.object3D;
-    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-    return origin.clone().add(f.multiplyScalar(d)).setY(CHEST_Y);
+    return origin.clone()
+      .add(new THREE.Vector3(0, 0, -d))
+      .setY(CHEST_Y);
   },
 
   diagonalFrom(origin, x, z) {
-    const cam = this.sceneEl.camera.el.object3D;
-    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
     return origin.clone()
-      .add(f.multiplyScalar(z))
-      .add(r.multiplyScalar(x))
+      .add(new THREE.Vector3(x, 0, -z))
       .setY(CHEST_Y);
   },
 
